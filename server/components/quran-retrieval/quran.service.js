@@ -1,6 +1,6 @@
 const axios = require("axios");
 const Cache = require("../../utils/Cache");
-
+//API endpoint mappings
 const { verseByKey } = require("./quran.api");
 
 const parametersConfig = {
@@ -18,7 +18,6 @@ const getURLQueryString = (options) => {
 };
 
 const fetchDataFromAPI = (url) => {
-  //configurations to send the request
   let config = {
     method: "get",
     maxBodyLength: Infinity,
@@ -26,68 +25,53 @@ const fetchDataFromAPI = (url) => {
     headers: {
       Accept: "application/json",
     },
-  };
+  }; //configurations to send the request
 
-  //returning the response received from the API
   return axios(config).then((response) => {
     return JSON.stringify({ success: true, ...response.data });
-  });
+  }); //returning the response received from the API
 };
 
-const getDataFromCacheOrAPI = async (
-  url,
-  addQueryString,
-  cacheKey = "",
-  ttl = 0
-) => {
+const getQuranData = async (url, addQueryString, cacheKey = "", ttl = 0) => {
   try {
     let data;
-    //check cache
-    if (!cacheKey == "") data = Cache.checkCache(cacheKey);
+    if (!cacheKey == "") data = Cache.checkCache(cacheKey); //first check cache if cache key is given
 
-    //to get the parameters in the string form to be attached to the URL
-    const queryString = getURLQueryString(parametersConfig);
+    const queryString = getURLQueryString(parametersConfig); //to get the parameters in the string form to be attached to the URL
 
-    //send request if the data is not found in the cache
     if (!data) {
       data = await fetchDataFromAPI(
         `${url}?${addQueryString ? queryString : null}`
-      );
+      ); //send request if the data is not found in the cache
     }
 
-    //update cache with the retrieved data
-    if (!cacheKey == "") Cache.updateCache(cacheKey, data, ttl);
+    if (!cacheKey == "") Cache.updateCache(cacheKey, data, ttl); //update cache with the retrieved data
 
-    //return the results
-    return data;
+    return data; //return the results
   } catch (error) {
-    //standard error response
     const response = {
       success: false,
       message:
-        "Could not retrieve the data. Check your internet and try again.",
+        "Could not retrieve the data. Check your internet and try again.", //standard error response
     };
     return response;
   }
 };
 
 const getVerseData = async (verseKey) => {
-  //url to get verse data
-  const url = `${verseByKey}${verseKey}`;
-  //cache key to first search in the cache
-  const cacheKey = `verse${verseKey}`;
+  const url = `${verseByKey}${verseKey}`; //url to get verse data
 
-  //getting the verse data
-  const verseData = await getDataFromCacheOrAPI(url, true, cacheKey);
+  const cacheKey = `verse${verseKey}`; //cache key to first search in the cache
 
-  //return the results
-  return verseData;
+  const verseData = await getQuranData(url, true, cacheKey); //getting the verse data
+
+  return verseData; //return the results
 };
 
 const filterForSearch = () => {};
 
 module.exports = {
-  getDataFromCacheOrAPI,
+  getQuranData,
   filterForSearch,
   getURLQueryString,
   getVerseData,

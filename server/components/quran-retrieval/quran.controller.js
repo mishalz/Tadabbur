@@ -1,15 +1,12 @@
 const quranService = require("./quran.service");
-const Cache = require("../../utils/Cache");
 const { allSurahs, versesBySurah, randomVerse } = require("./quran.api");
 
 const getAllSurahs = async (_, res) => {
+  //cache key to first search in the cache
   const cacheKey = "surahList";
 
-  const surahList = await quranService.getDataFromCacheOrAPI(
-    allSurahs,
-    false,
-    cacheKey
-  );
+  //retrieving the surah list
+  const surahList = await quranService.getQuranData(allSurahs, false, cacheKey);
 
   //sending an error response if success is false
   if (surahList.success == false) {
@@ -19,66 +16,49 @@ const getAllSurahs = async (_, res) => {
 
 //to get all verses of a surah
 const getSurahData = async (req, res) => {
-  //retrieve the surah id from the URL params
-  const surahId = req.params.id;
-  const page = req.query.page;
+  const surahId = req.params.id; //retrieve the surah id from the URL params
+  const page = req.query.page; //for pagination
 
-  //to get the parameters in the string form to be attached to the URL
   const queryString = quranService.getURLQueryString(
     quranService.parametersConfig
-  );
+  ); //to get the parameters in the string form to be attached to the URL
 
-  //the url to get verses for a surah with pagination
-  const url = `${versesBySurah}${surahId}?${queryString}page=${page}`;
+  const url = `${versesBySurah}${surahId}?${queryString}page=${page}`; //the url to get verses for a surah with pagination
 
-  //cache key to first search in the cache
-  const cacheKey = `surah${surahId}-page${page}`;
+  const cacheKey = `surah${surahId}-page${page}`; //cache key to first search in the cache
 
-  //fetching the verses from the cache or API
-  const surahData = await quranService.getDataFromCacheOrAPI(
-    url,
-    false,
-    cacheKey
-  );
+  const surahData = await quranService.getQuranData(url, false, cacheKey); //retrieving the verses
 
-  //sending an error response if success is false
   if (surahData.success == false) {
-    res.status(500).send(surahData);
+    res.status(500).send(surahData); //sending an error response if success is false
   } else res.status(200).send(surahData); //otherwise returning the result with a success
 };
 
 //to retrieve a random verse from the quran
 const getRandomVerse = async (_, res) => {
-  //the url to get random verse from
-  const url = `${randomVerse}`;
-  //cache key to first search in the cache
-  const cacheKey = `randomVerse`;
+  const url = `${randomVerse}`; //the url to get random verse from
+  const cacheKey = `randomVerse`; //cache key to first search in the cache
 
-  //fetching the random verse from the cache or API with necessary query parameters
-  const verse = await quranService.getDataFromCacheOrAPI(
+  const verse = await quranService.getQuranData(
     url,
     true,
     cacheKey,
     86400 //so that each random verse is only stored for one day (24 hours).
-  );
+  ); //fetching the random verse from the cache or API with necessary query parameters
 
-  //sending an error response if success is false
   if (verse.success == false) {
-    res.status(500).send(verse);
+    res.status(500).send(verse); //sending an error response if success is false
   } else res.status(200).send(verse); //otherwise returning the result with a success
 };
 
 //to get Data for one verse
 const getVerseDataRouteHandler = async (req, res) => {
-  //retrieving the verse key from the request params
-  const verseKey = req.params.verse_key;
+  const verseKey = req.params.verse_key; //retrieving the verse key from the request params
 
-  //getting the verse data
-  const verseData = await quranService.getVerseData(verseKey);
+  const verseData = await quranService.getVerseData(verseKey); //getting the verse data
 
-  //sending an error response if success is false
   if (verseData.success == false) {
-    res.status(500).send(verseData);
+    res.status(500).send(verseData); //sending an error response if success is false
   } else res.status(200).send(verseData); //otherwise returning the result with a success
 };
 
