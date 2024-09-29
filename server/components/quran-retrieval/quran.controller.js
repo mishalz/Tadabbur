@@ -1,6 +1,6 @@
 const quranService = require("./quran.service");
 const Cache = require("../../utils/Cache");
-const { allSurahs, versesBySurah } = require("./quran.api");
+const { allSurahs, versesBySurah, randomVerse } = require("./quran.api");
 
 const parametersConfig = {
   translations: 131,
@@ -39,6 +39,8 @@ const getSurahData = async (req, res) => {
     //retrieve the surah id from the URL params
     const surahId = req.params.id;
     const page = req.query.page;
+
+    //to get the parameters in the string form to be attached to the URL
     const queryString = quranService.getURLQueryString(parametersConfig);
 
     const cacheKey = `surah${surahId}-page${page}`;
@@ -68,7 +70,30 @@ const getSurahData = async (req, res) => {
     res.status(500).send(response);
   }
 };
-const getRandomVerse = () => {};
-const getVerseData = () => {};
+
+//to retrieve a random verse from the quran
+const getRandomVerse = async (_, res) => {
+  try {
+    //to get the parameters in the string form to be attached to the URL
+    const queryString = quranService.getURLQueryString(parametersConfig);
+
+    //fetching the random verse from the API with necessary query parameters
+    const verse = await quranService.fetchDataFromAPI(
+      `${randomVerse}?${queryString}`
+    );
+
+    //return the results
+    res.status(200).send(verse);
+  } catch (error) {
+    //standard error response for any internal server error
+    const response = {
+      success: false,
+      message:
+        "Could not retrieve the list of surahs. Check your internet and try again.",
+    };
+    res.status(500).send(response);
+  }
+};
+const getVerseData = (req, res) => {};
 
 module.exports = { getAllSurahs, getSurahData, getRandomVerse, getVerseData };
