@@ -1,12 +1,17 @@
 const quranService = require("./quran.service");
 const { allSurahs, versesBySurah, randomVerse } = require("./quran.api");
 
-const getAllSurahs = async (_, res) => {
+const getAllSurahs = async (req, res) => {
   //cache key to first search in the cache
   const cacheKey = "surahList";
 
   //retrieving the surah list
-  const surahList = await quranService.getQuranData(allSurahs, false, cacheKey);
+  let surahList = await quranService.getQuranData(allSurahs, false, cacheKey);
+
+  //method for fuzzy search
+  const query = req.query ? (req.query.search ? req.query.search : null) : null;
+
+  if (query) surahList = quranService.filterForSearch(query, surahList);
 
   //sending an error response if success is false
   if (surahList.success == false) {

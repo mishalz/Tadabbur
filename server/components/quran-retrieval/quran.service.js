@@ -1,5 +1,6 @@
 const axios = require("axios");
 const Cache = require("../../utils/Cache");
+const Fuse = require("fuse.js");
 //API endpoint mappings
 const { verseByKey } = require("./quran.api");
 
@@ -68,7 +69,23 @@ const getVerseData = async (verseKey) => {
   return verseData; //return the results
 };
 
-const filterForSearch = () => {};
+const filterForSearch = (searchQuery, surahList) => {
+  try {
+    const fuseOptions = {
+      keys: ["name_simple", "name_complex", "translated_name.name"],
+      threshold: 0.6,
+    };
+    const list = JSON.parse(surahList);
+    const fuse = new Fuse(list.chapters, fuseOptions);
+    return { success: true, results: fuse.search(searchQuery) };
+  } catch (error) {
+    const response = {
+      success: false,
+      message: "Could not get the search results.", //error response for search
+    };
+    return response;
+  }
+};
 
 module.exports = {
   getQuranData,
