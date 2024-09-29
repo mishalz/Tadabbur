@@ -1,4 +1,2 @@
 npm -y init
-npm install express
-npm install nodemon
-npm install dotenv
+npm install express nodemon dotenv bcrypt joi jsonwebtoken body-parser mongoose mongodb
