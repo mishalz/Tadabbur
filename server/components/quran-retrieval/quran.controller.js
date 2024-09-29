@@ -2,98 +2,89 @@ const quranService = require("./quran.service");
 const Cache = require("../../utils/Cache");
 const { allSurahs, versesBySurah, randomVerse } = require("./quran.api");
 
-const parametersConfig = {
-  translations: 131,
-  fields: "text_indopak",
-};
-
 const getAllSurahs = async (_, res) => {
-  try {
-    //first check cache for the surah list
-    let surahList = Cache.checkCache("surahList");
+  const cacheKey = "surahList";
 
-    //send request if the list is not found in the cache
-    if (!surahList) {
-      surahList = await quranService.fetchDataFromAPI(allSurahs);
-    }
+  const surahList = await quranService.getDataFromCacheOrAPI(
+    allSurahs,
+    false,
+    cacheKey
+  );
 
-    //update cache with the retrieved data
-    Cache.updateCache("surahList", surahList);
-
-    //return the results
-    res.status(200).send(surahList);
-  } catch (error) {
-    //standard error response for any internal server error
-    const response = {
-      success: false,
-      message:
-        "Could not retrieve the list of surahs. Check your internet and try again.",
-    };
-    res.status(500).send(response);
-  }
+  //sending an error response if success is false
+  if (surahList.success == false) {
+    res.status(500).send(surahList);
+  } else res.status(200).send(surahList); //otherwise returning the result with a success
 };
 
 //to get all verses of a surah
 const getSurahData = async (req, res) => {
-  try {
-    //retrieve the surah id from the URL params
-    const surahId = req.params.id;
-    const page = req.query.page;
+  //retrieve the surah id from the URL params
+  const surahId = req.params.id;
+  const page = req.query.page;
 
-    //to get the parameters in the string form to be attached to the URL
-    const queryString = quranService.getURLQueryString(parametersConfig);
+  //to get the parameters in the string form to be attached to the URL
+  const queryString = quranService.getURLQueryString(
+    quranService.parametersConfig
+  );
 
-    const cacheKey = `surah${surahId}-page${page}`;
+  //the url to get verses for a surah with pagination
+  const url = `${versesBySurah}${surahId}?${queryString}page=${page}`;
 
-    //check cache
-    let surahData = Cache.checkCache(cacheKey);
+  //cache key to first search in the cache
+  const cacheKey = `surah${surahId}-page${page}`;
 
-    //send request if the list is not found in the cache
-    if (!surahData) {
-      surahData = await quranService.fetchDataFromAPI(
-        `${versesBySurah}${surahId}?${queryString}page=${page}`
-      );
-    }
+  //fetching the verses from the cache or API
+  const surahData = await quranService.getDataFromCacheOrAPI(
+    url,
+    false,
+    cacheKey
+  );
 
-    //update cache with the retrieved data
-    Cache.updateCache(cacheKey, surahData);
-
-    //return the results
-    res.status(200).send(surahData);
-  } catch (error) {
-    //standard error response for any internal server error
-    const response = {
-      success: false,
-      message:
-        "Could not retrieve the list of surahs. Check your internet and try again.",
-    };
-    res.status(500).send(response);
-  }
+  //sending an error response if success is false
+  if (surahData.success == false) {
+    res.status(500).send(surahData);
+  } else res.status(200).send(surahData); //otherwise returning the result with a success
 };
 
 //to retrieve a random verse from the quran
 const getRandomVerse = async (_, res) => {
-  try {
-    //to get the parameters in the string form to be attached to the URL
-    const queryString = quranService.getURLQueryString(parametersConfig);
+  //the url to get random verse from
+  const url = `${randomVerse}`;
+  //cache key to first search in the cache
+  const cacheKey = `randomVerse`;
 
-    //fetching the random verse from the API with necessary query parameters
-    const verse = await quranService.fetchDataFromAPI(
-      `${randomVerse}?${queryString}`
-    );
+  //fetching the random verse from the cache or API with necessary query parameters
+  const verse = await quranService.getDataFromCacheOrAPI(
+    url,
+    true,
+    cacheKey,
+    86400 //so that each random verse is only stored for one day (24 hours).
+  );
 
-    //return the results
-    res.status(200).send(verse);
-  } catch (error) {
-    //standard error response for any internal server error
-    const response = {
-      success: false,
-      message:
-        "Could not retrieve the list of surahs. Check your internet and try again.",
-    };
-    res.status(500).send(response);
-  }
+  //sending an error response if success is false
+  if (verse.success == false) {
+    res.status(500).send(verse);
+  } else res.status(200).send(verse); //otherwise returning the result with a success
 };
-const getVerseData = (req, res) => {};
 
-module.exports = { getAllSurahs, getSurahData, getRandomVerse, getVerseData };
+//to get Data for one verse
+const getVerseDataRouteHandler = async (req, res) => {
+  //retrieving the verse key from the request params
+  const verseKey = req.params.verse_key;
+
+  //getting the verse data
+  const verseData = await quranService.getVerseData(verseKey);
+
+  //sending an error response if success is false
+  if (verseData.success == false) {
+    res.status(500).send(verseData);
+  } else res.status(200).send(verseData); //otherwise returning the result with a success
+};
+
+module.exports = {
+  getAllSurahs,
+  getSurahData,
+  getRandomVerse,
+  getVerseDataRouteHandler,
+};
