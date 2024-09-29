@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 //import the database file to trigger the connection to the database
 require("./auth.database.js");
 const User = require("./user.model.js");
-const AuthenticationError = require("../../utils/AuthenticationError.js");
+const { AuthenticationError } = require("../../utils/Errors");
 
 //the secret key is used to sign and validate the jwt tokens
 const secretKey = process.env.JWT_SECRET_KEY;

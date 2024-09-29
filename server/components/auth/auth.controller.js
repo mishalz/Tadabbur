@@ -1,6 +1,5 @@
 const authService = require("./auth.service");
-const ConflictError = require("../../utils/ConflictError");
-const AuthenticationError = require("../../utils/AuthenticationError");
+const { ConflictError, AuthenticationError } = require("../../utils/Errors");
 
 //To add a new user to the system
 const registerUser = async (req, res) => {
