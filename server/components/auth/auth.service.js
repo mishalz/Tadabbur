@@ -5,6 +5,10 @@ const jwt = require("jsonwebtoken");
 //import the database file to trigger the connection to the database
 require("./auth.database.js");
 const User = require("./user.model.js");
+const AuthenticationError = require("../../utils/AuthenticationError.js");
+
+//the secret key is used to sign and validate the jwt tokens
+const secretKey = process.env.JWT_SECRET_KEY;
 
 //Joi schemas for validating the registration and login inputs
 const registerSchema = Joi.object({
@@ -18,7 +22,15 @@ const loginSchema = Joi.object({
 });
 
 //function to check if a token sent in the header of the request is still valid.
-const validateToken = () => {};
+const validateToken = (token, req, res, next) => {
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) throw new AuthenticationError("Invalid token.");
+
+    res.send({ success: true, user: decoded });
+    // req.user = decoded;
+    // next();
+  });
+};
 
 //function to apply specific validation to the user entered data
 const validateInputData = (type, data) => {
@@ -69,9 +81,6 @@ const generateToken = (user) => {
     id: user._id,
     username: user.username,
   };
-
-  //a secret key is used to sign the payload
-  const secretKey = process.env.JWT_SECRET_KEY;
 
   //to define the time that the token will expire in.
   const options = { expiresIn: "7d" };
