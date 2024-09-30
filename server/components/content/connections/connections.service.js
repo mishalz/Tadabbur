@@ -132,7 +132,11 @@ const getAllConnections = async (userId) => {
 
     //if the database returns a connections array of 0 length
     if (result.length == 0) {
-      return { success: true, message: "There are no connections to display." };
+      return {
+        success: true,
+        status: 404,
+        message: "There are no connections to display.",
+      };
     } else {
       //if connections are retrieved successfully and is not empty
       Cache.updateCache(cacheKey, result);
