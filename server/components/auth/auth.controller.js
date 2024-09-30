@@ -32,10 +32,11 @@ const registerUser = async (req, res) => {
     res.status(201).send(response);
   } catch (error) {
     //standard error response for any internal server error
+
     const response = {
       success: false,
       status: 500,
-      message: "Registration Unsuccessful!",
+      message: error.message,
     };
 
     //if the error is validation related or a custom conflict error, then the specific error message is returned
@@ -85,12 +86,11 @@ const loginUser = async (req, res) => {
       res.status(200).send(response);
     }
   } catch (error) {
-    console.log(error);
     //standard error response for any internal server error
     const response = {
       success: false,
       status: 500,
-      message: "Login Unsuccessful!",
+      message: error.message,
     };
 
     //for all validation or custom built errors, the appropriate error message is returned

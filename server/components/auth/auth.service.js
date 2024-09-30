@@ -1,9 +1,6 @@
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
-
-//import the database file to trigger the connection to the database
-require("./auth.database.js");
 const User = require("./user.model.js");
 const { AuthenticationError } = require("../../utils/Errors");
 

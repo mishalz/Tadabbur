@@ -1,5 +1,6 @@
 //define the User model
 const mongoose = require("mongoose");
+const userDBConnection = require("./auth.database");
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
@@ -7,6 +8,6 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
 });
 
-const User = mongoose.model("User", userSchema);
+const User = userDBConnection.model("User", userSchema);
 
 module.exports = User;
