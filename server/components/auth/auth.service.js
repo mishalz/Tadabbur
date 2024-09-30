@@ -21,15 +21,40 @@ const loginSchema = Joi.object({
   email: Joi.string().email().required(),
 });
 
-//function to check if a token sent in the header of the request is still valid.
-const validateToken = (token, req, res, next) => {
-  jwt.verify(token, secretKey, (err, decoded) => {
-    if (err) throw new AuthenticationError("Invalid token.");
+//To check if a token sent in the header of the request is still valid.
+const validateToken = (req, res, next) => {
+  try {
+    //get the token from the header
+    const authHeader = req.headers["authorization"];
+    const token = authHeader ? authHeader.split(" ")[1] : null;
 
-    res.send({ success: true, user: decoded });
-    // req.user = decoded;
-    // next();
-  });
+    //throw an error if the token doesnot exist
+    if (!token) {
+      throw new AuthenticationError("Token missing.");
+    }
+
+    //verify the token validity using jwt
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) throw new AuthenticationError("Invalid token."); //throw error if token is invalid
+      req.user = decoded;
+      next();
+    });
+  } catch (error) {
+    //standard error response for any internal server error
+    const response = {
+      success: false,
+      status: 500,
+      message: "Validation Unsuccessful!",
+    };
+
+    //for Authentication errors
+    if (error instanceof AuthenticationError) {
+      response.message = error.message;
+      response.status = 401;
+    }
+
+    res.status(response.status).send(response);
+  }
 };
 
 //function to apply specific validation to the user entered data
@@ -40,9 +65,10 @@ const validateInputData = (type, data) => {
 
   const { error, value } = schema.validate(data); //if the schema is valid, the error will be undefined, otherwise the error will have the Joi ValidationError object.
 
-  if (error) throw new Joi.ValidationError(error.details[0].message);
-  //throw an error so that it could be caught and dealt in the parent function
-  else if (value) return value; //if there is no error, return the validated data
+  if (error)
+    return { success: false, status: 422, message: error.details[0].message };
+  //send back an appropriate error object so it could be dealt in the parent function
+  else if (value) return { success: true, data: value }; //if there is no error, return the validated data
 };
 
 //To encrypt the user entered password before storing it in the user database to ensure security of user data.
@@ -63,7 +89,6 @@ const sendToDatabase = async (data) => {
 //To check if a user with the email exists.
 const getUserByEmail = async (email) => {
   const existingUser = await User.findOne({ email: email }); //query the database to retrieve a user by the email if it exists
-
   if (!existingUser) return { exists: false }; //if there is no user found
   return { exists: true, user: existingUser };
 };

@@ -5,9 +5,14 @@ const { ConflictError, AuthenticationError } = require("../../utils/Errors");
 const registerUser = async (req, res) => {
   try {
     //validate the input data
-    const validData = authService.validateInputData("register", req.body);
+    const responseData = authService.validateInputData("register", req.body);
+    const validData = responseData.data;
 
+    if (responseData.success == false)
+      //if validation returns an error
+      return res.status(responseData.status).send(responseData);
     //check if the email is already registered
+
     const { exists } = await authService.getUserByEmail(validData.email);
     if (exists) {
       throw new ConflictError("A user already registered with this email.");
@@ -29,18 +34,17 @@ const registerUser = async (req, res) => {
     //standard error response for any internal server error
     const response = {
       success: false,
+      status: 500,
       message: "Registration Unsuccessful!",
-      error: "Something went wrong, please try again.",
     };
-    res.status(500);
 
     //if the error is validation related or a custom conflict error, then the specific error message is returned
-    if (error.isJoi || error instanceof ConflictError) {
-      response.error = error.message;
-      error.isJoi ? res.status(422) : res.status(409);
+    if (error instanceof ConflictError) {
+      response.message = error.message;
+      response.status = error.statusCode;
     }
 
-    res.send(response);
+    res.status(response.status).send(response);
   }
 };
 
@@ -50,14 +54,19 @@ const loginUser = async (req, res) => {
     //validate the input data
     const validData = authService.validateInputData("login", req.body);
 
+    if (validData.success == false)
+      //if validation returns an error
+      return res.status(validData.status).send(validData);
+
     //get user by email
-    const existingUser = await authService.getUserByEmail(validData.email);
+    const existingUser = await authService.getUserByEmail(validData.data.email);
+
     if (!existingUser.exists)
       throw new ConflictError("The email is not registered.");
 
     //to match the hashed password retrieved from the database and the user entered password
     const match = await authService.matchPassword(
-      validData.password,
+      validData.data.password,
       existingUser.user.password
     );
 
@@ -76,57 +85,25 @@ const loginUser = async (req, res) => {
       res.status(200).send(response);
     }
   } catch (error) {
+    console.log(error);
     //standard error response for any internal server error
     const response = {
       success: false,
+      status: 500,
       message: "Login Unsuccessful!",
-      error: "Something went wrong, please try again.",
     };
 
     //for all validation or custom built errors, the appropriate error message is returned
-    if (error.isJoi) {
-      response.error = error.message;
-      res.status(422);
-    } else if (
+    if (
       error instanceof ConflictError ||
       error instanceof AuthenticationError
     ) {
-      response.error = error.message;
-      error instanceof ConflictError ? res.status(409) : res.status(401);
-    } else res.status(500);
-
-    res.send(response);
-  }
-};
-
-//To check if a token sent in the header of the request is still valid.
-const validateToken = (req, res, next) => {
-  try {
-    const authHeader = req.headers["authorization"];
-
-    const token = authHeader ? authHeader.split(" ")[1] : null;
-    if (!token) {
-      throw new AuthenticationError("Token missing.");
+      response.message = error.message;
+      response.status = error.statusCode;
     }
 
-    authService.validateToken(token, req, res, next);
-  } catch (error) {
-    //standard error response for any internal server error
-    const response = {
-      success: false,
-      message: "Validation Unsuccessful!",
-      error: "Something went wrong, please try again.",
-    };
-
-    //for Authentication errors
-    if (error instanceof AuthenticationError) {
-      response.message = "You need to log in.";
-      response.error = error.message;
-      res.status(401);
-    } else res.status(500); //if its not an authentication error, then set status code to internal server error
-
-    res.send(response);
+    res.status(response.status).send(response);
   }
 };
 
-module.exports = { registerUser, loginUser, validateToken };
+module.exports = { registerUser, loginUser };

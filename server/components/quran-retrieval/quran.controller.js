@@ -15,7 +15,7 @@ const getAllSurahs = async (req, res) => {
 
   //sending an error response if success is false
   if (surahList.success == false) {
-    res.status(500).send(surahList);
+    res.status(surahList.status ? surahList.status : 500).send(surahList);
   } else res.status(200).send(surahList); //otherwise returning the result with a success
 };
 
@@ -32,10 +32,16 @@ const getSurahData = async (req, res) => {
 
   const cacheKey = `surah${surahId}-page${page}`; //cache key to first search in the cache
 
-  const surahData = await quranService.getQuranData(url, false, cacheKey); //retrieving the verses
-
+  let surahData = await quranService.getQuranData(url, false, cacheKey); //retrieving the verses
+  if (surahData.success == true && surahData.verses.length == 0) {
+    surahData = {
+      success: false,
+      status: 400,
+      message: "There are no verses to display.",
+    };
+  }
   if (surahData.success == false) {
-    res.status(500).send(surahData); //sending an error response if success is false
+    res.status(surahData.status ? surahData.status : 500).send(surahData); //sending an error response if success is false
   } else res.status(200).send(surahData); //otherwise returning the result with a success
 };
 
@@ -52,7 +58,7 @@ const getRandomVerse = async (_, res) => {
   ); //fetching the random verse from the cache or API with necessary query parameters
 
   if (verse.success == false) {
-    res.status(500).send(verse); //sending an error response if success is false
+    res.status(verse.status ? verse.status : 500).send(verse); //sending an error response if success is false
   } else res.status(200).send(verse); //otherwise returning the result with a success
 };
 
@@ -63,8 +69,10 @@ const getVerseDataRouteHandler = async (req, res) => {
   const verseData = await quranService.getVerseData(verseKey); //getting the verse data
 
   if (verseData.success == false) {
-    res.status(500).send(verseData); //sending an error response if success is false
-  } else res.status(200).send(verseData); //otherwise returning the result with a success
+    res.status(verseData.status ? verseData.status : 500).send(verseData); //sending an error response if success is false
+  } else {
+    res.status(200).send(verseData);
+  } //otherwise returning the result with a success
 };
 
 module.exports = {
