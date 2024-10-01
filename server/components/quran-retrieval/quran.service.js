@@ -30,7 +30,7 @@ const fetchDataFromAPI = (url) => {
 
   return axios(config)
     .then((response) => {
-      return { success: true, ...response.data }; //returning the response received from the API
+      return { success: true, status: 200, ...response.data }; //returning the response received from the API
     })
     .catch((error) => {
       return {
@@ -42,7 +42,36 @@ const fetchDataFromAPI = (url) => {
       };
     });
 };
+const getSurahName = async (surahNumber) => {
+  try {
+    let url = `https://api.quran.com/api/v4/chapters/${surahNumber}`;
+    const cacheKey = `surahinfo-${surahNumber}`;
+    let data = Cache.checkCache(cacheKey); //first check cache if cache key is given
 
+    if (data) {
+      return { success: true, status: 200, chapter: data };
+    }
+    data = await fetchDataFromAPI(`${url}`); //send request if the data is not found in the cache
+
+    if (data.success) Cache.updateCache(cacheKey, data.chapter);
+
+    return data;
+    //return the results
+  } catch (error) {
+    const response = {
+      success: false,
+      status: 500,
+      message:
+        "Could not retrieve the data. Check your internet and try again.", //standard error response
+    };
+    if (error instanceof axios.AxiosError) {
+      response.status = error.response.data.status;
+      response.message = error.response.data.error;
+    }
+
+    return response;
+  }
+};
 const getQuranData = async (url, addQueryString, cacheKey = "", ttl = 0) => {
   try {
     let data;
@@ -119,4 +148,5 @@ module.exports = {
   getURLQueryString,
   getVerseData,
   parametersConfig,
+  getSurahName,
 };
