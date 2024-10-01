@@ -1,5 +1,4 @@
 //define the notes model
-const { required } = require("joi");
 const contentDBConnection = require("../content.db");
 const mongoose = require("mongoose");
 

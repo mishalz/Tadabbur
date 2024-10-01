@@ -2,6 +2,7 @@ const Note = require("./notes.model");
 const Joi = require("joi");
 const quranService = require("../../quran-retrieval/quran.service");
 const Cache = require("../../../utils/Cache");
+const Validation = require("../../../utils/Validation");
 
 //schema to validate user input for note creation and update
 const noteSchema = Joi.object({
@@ -10,20 +11,11 @@ const noteSchema = Joi.object({
   colour: Joi.string().trim().length(7).required(),
 });
 
-const validateInput = (data) => {
-  const { error, value } = noteSchema.validate(data); //if the schema is valid, the error will be undefined, otherwise the error will have the Joi ValidationError object.
-
-  if (error) {
-    //incase of error, send back an appropriate error response
-    return { success: false, status: 422, message: error.details[0].message };
-  } else if (value) return { success: true, status: 200, data: value }; //if there is no error, return the validated data
-};
-
 //function to validate input data and create a new note
 const saveNote = async (userId, verseKey, data) => {
   try {
     //valiating user input
-    const validatedInput = validateInput(data);
+    const validatedInput = Validation.validateInput(data, noteSchema);
     //if input data doesnot pass validation
     if (!validatedInput.success) return validatedInput;
 
@@ -37,7 +29,7 @@ const saveNote = async (userId, verseKey, data) => {
     //if everything works fine, a success response is sent back.
     const response = { success: true, status: 201, message: "Note Created!" };
 
-    //since a new connection has been created, the old cache needs to be deleted.
+    //since a new note has been created, the old cache needs to be deleted.
     Cache.deleteCache(`notes-${userId}-${verseKey}`);
     Cache.deleteCache(`notes-${userId}`);
 
@@ -125,7 +117,7 @@ const getVerseNotes = async (userId, verseKey) => {
 const updateNote = async (noteId, data) => {
   try {
     //first validate the data
-    const validatedInput = validateInput(data);
+    const validatedInput = Validation.validateInput(data, noteSchema);
     //if input data doesnot pass validation
     if (!validatedInput.success) return validatedInput;
 
@@ -166,7 +158,6 @@ const deleteNotes = async (noteIds) => {
 };
 
 module.exports = {
-  validateInput,
   saveNote,
   getAllNotes,
   updateNote,
