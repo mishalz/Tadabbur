@@ -2,7 +2,7 @@ require("dotenv").config({ path: "./.env" });
 const express = require("express");
 const bodyParser = require("body-parser");
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 //retrieving routes from specific components
 const authRoutes = require("./components/auth/auth.routes");
