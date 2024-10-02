@@ -1,0 +1,47 @@
+.title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0px 10px;
+}
+.title-section {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+.logo {
+  height: 45px;
+  margin: 10px;
+}
+
+.title {
+  font-size: 35px;
+}
+
+.icon {
+  font-size: 40px;
+}
+.auth {
+  border: none;
+  background-color: white;
+  font-size: 20px;
+  transition: all 0.1s ease-in-out;
+  margin-right: 10px;
+}
+.auth:hover {
+  border: none;
+  background-color: white;
+  color: #ee5160;
+  transform: scale(1.05);
+}
+.username {
+  font-size: 20px;
+  color: #ee5160;
+  margin-right: 10px;
+}
+
+.profile-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

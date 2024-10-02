@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease-in-out;
-  position: fixed;
+
   left: 0;
 }
 /* Toggle Button */
@@ -67,11 +67,15 @@
   align-items: center;
   background-color: #d6d5d5;
 }
-
 .toggle-btn.collapsed {
   background-color: #d6d5d5;
+  font-size: 26px;
+}
+
+.toggle-btn.collapsed > .icon {
+  background-color: #d6d5d5;
   font-size: 24px;
-  color: #969696;
+  color: #e6dcdc;
 }
 .sidebar.collapsed .active > .icon {
   color: #e69299;
@@ -80,9 +84,10 @@
 .sidebar.collapsed .nav-item.active:hover {
   background-color: #d6d5d5;
 }
-.sidebar.collapsed .nav-item.active:hover .icon {
+.sidebar.collapsed .nav-item.active:hover > .icon {
   color: #e69299;
   font-size: 25px;
+  transform: scale(1);
 }
 
 .sidebar.collapsed .nav-item:hover {
@@ -90,7 +95,8 @@
 }
 .sidebar.collapsed .nav-item:hover > .icon {
   color: #969696;
-  font-size: 30px;
+  transform: scale(1.3); /* Increase the size of the hovered icon */
+  z-index: 1; /* Bring it to the foreground */
 }
 
 .sidebar.collapsed .nav-item span {
@@ -102,5 +108,7 @@
 
 .sidebar.collapsed .icon {
   color: #5ca298;
-  font-size: 24px; /* Increase icon size in collapsed mode */
+  font-size: 24px;
+  transition: transform 0.1s ease-in-out; /* Smooth transition */
+  position: relative; /* Increase icon size in collapsed mode */
 }

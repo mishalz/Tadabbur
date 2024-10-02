@@ -1,0 +1,52 @@
+.verse {
+  margin: 20px;
+}
+
+.verse-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+}
+
+.verse {
+  width: 80%;
+  text-align: right;
+  font-size: 20px;
+}
+.verse .arabic-text {
+  margin-bottom: 15px;
+}
+.verse .translation {
+  text-align: left;
+}
+.verse-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.verse-number {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 5px;
+}
+
+.verse-options button {
+  border: none;
+  margin: 5px 0px;
+  border-radius: 5px;
+  padding: 5px;
+}
+
+.verse-data {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  align-items: center;
+}
+
+.verse-data .icon {
+  font-size: 20px;
+  margin: 5px;
+}

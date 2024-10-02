@@ -18,6 +18,18 @@ const loginSchema = Joi.object({
   email: Joi.string().email().required(),
 });
 
+const validateUser = (token) => {
+  try {
+    //verify the token validity using jwt
+    return jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) return { success: false, status: 401 }; //throw error if token is invalid
+      return { success: true, status: 200, user: decoded };
+    });
+  } catch (err) {
+    return { succes: false, status: 500, message: "something went wrong" };
+  }
+};
+
 //To check if a token sent in the header of the request is still valid.
 const validateToken = (req, res, next) => {
   try {
@@ -25,6 +37,7 @@ const validateToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader ? authHeader.split(" ")[1] : null;
 
+    console.log(req.headers);
     //throw an error if the token doesnot exist
     if (!token) {
       throw new AuthenticationError("Token missing.");
@@ -120,4 +133,5 @@ module.exports = {
   getUserByEmail,
   matchPassword,
   generateToken,
+  validateUser,
 };

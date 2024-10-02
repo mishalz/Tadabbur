@@ -82,11 +82,13 @@ const loginUser = async (req, res) => {
         success: true,
         message: "Login Successful!",
         token: token,
+        username: existingUser.user.username,
       };
       res.status(200).send(response);
     }
   } catch (error) {
     //standard error response for any internal server error
+    console.log(error);
     const response = {
       success: false,
       status: 500,
@@ -106,4 +108,12 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+const validateToken = (req, res) => {
+  //get the token from the header
+  const authHeader = req.headers["authorization"];
+  const token = authHeader ? authHeader.split(" ")[1] : null;
+
+  const response = authService.validateUser(token);
+  res.status(response.status).send(response);
+};
+module.exports = { registerUser, loginUser, validateToken };

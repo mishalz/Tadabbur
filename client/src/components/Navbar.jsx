@@ -8,7 +8,6 @@ import {
   FaStickyNote,
   FaThLarge,
   FaBars,
-  FaCross,
 } from "react-icons/fa";
 import { ImCross } from "react-icons/im";
 import "../styling/Navbar.css";
@@ -25,7 +24,7 @@ const Navbar = () => {
           className={`toggle-btn ${isOpen ? "open" : "collapsed"}`}
           onClick={toggleSidebar}
         >
-          {isOpen ? <ImCross className="icon" /> : <FaBars className="icon" />}
+          {isOpen ? <ImCross /> : <FaBars />}
         </div>
         <nav className="nav">
           <NavLink

@@ -1,0 +1,28 @@
+.surah-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px;
+  padding: 10px;
+  background-color: #e899a0;
+  border-radius: 10px;
+  width: 180px;
+  box-shadow: 5px 5px #a1a0a0;
+}
+.surah-number {
+  font-size: 30px;
+  width: 30%;
+}
+.surah-names {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.arabic-name {
+  font-weight: 800;
+}
+.english-name {
+  font-size: 13px;
+}

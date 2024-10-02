@@ -1,7 +1,11 @@
 import React from "react";
 
 const ThemesPage = () => {
-  return <div>ThemesPage</div>;
+  return (
+    <div>
+      <h1>Themes</h1>
+    </div>
+  );
 };
 
 export default ThemesPage;

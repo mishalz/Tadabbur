@@ -1,0 +1,21 @@
+.note-section {
+  margin: 10px;
+  max-width: 200px;
+  padding: 10px;
+}
+
+.note-date {
+  font-size: 10px;
+}
+.note-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60%;
+}
+.note-heading {
+  text-align: left;
+}
+.note-key {
+  margin-right: 15px;
+}

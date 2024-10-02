@@ -1,0 +1,8 @@
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.heading {
+  font-size: 30px;
+}
