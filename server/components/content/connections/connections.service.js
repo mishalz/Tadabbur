@@ -21,7 +21,7 @@ const validateInput = (data) => {
   if (error)
     return { success: false, status: 422, message: error.details[0].message };
   //send back an appropriate error object so it could be dealt in the parent function
-  else if (value) return { success: true, data: value }; //if there is no error, return the validated data
+  else if (value) return { success: true, status: 200, data: value }; //if there is no error, return the validated data
 };
 
 //to validate that the verses exist and get data required for creating a connection
@@ -41,7 +41,7 @@ const validateAndGetVersePair = async (fromVerse, toVerse) => {
     return {
       success: false,
       status: 404,
-      message: "One or both verses could not be found.",
+      message: "One or both ayah could not be found.",
     };
   }
 };
@@ -158,7 +158,7 @@ const getVerseConnections = async (userId, verseKey) => {
     if (!verse.success)
       return {
         success: false,
-        status: 400,
+        status: 404,
         message: "The verse does not exist.",
       };
 
@@ -184,10 +184,11 @@ const getVerseConnections = async (userId, verseKey) => {
       connections: getFormattedConnections(verseConnections),
     };
 
-    if (result.length == 0) {
+    if (result.connections.length == 0) {
       //if there are no connections
       return {
         success: true,
+        status: 404,
         message: "There are no connections for this verse",
       };
     } else {

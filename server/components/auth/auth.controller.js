@@ -28,8 +28,12 @@ const registerUser = async (req, res) => {
     authService.sendToDatabase(validData);
 
     //if everything works fine, a success response is sent back.
-    const response = { success: true, message: "Registration Successful!" };
-    res.status(201).send(response);
+    const response = {
+      success: true,
+      status: 201,
+      message: "Registration Successful!",
+    };
+    res.status(response.status).send(response);
   } catch (error) {
     //standard error response for any internal server error
 
@@ -112,8 +116,12 @@ const validateToken = (req, res) => {
   //get the token from the header
   const authHeader = req.headers["authorization"];
   const token = authHeader ? authHeader.split(" ")[1] : null;
+  if (!token)
+    return res
+      .status(401)
+      .send({ success: false, status: 401, message: "token is missing" });
 
   const response = authService.validateUser(token);
-  res.status(response.status).send(response);
+  return res.status(response.status).send(response);
 };
 module.exports = { registerUser, loginUser, validateToken };

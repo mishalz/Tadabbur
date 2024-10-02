@@ -35,7 +35,7 @@ const createConnection = async (req, res) => {
       return res.status(400).send({
         success: false,
         status: 400,
-        message: "Connection between the two verses already exist.",
+        message: "connection exists",
       });
     }
 
@@ -72,7 +72,7 @@ const getAllUserConnections = async (req, res) => {
     //retrieving all connections through the user id
     const result = await connectionsService.getAllConnections(userId);
 
-    res.send(result);
+    return res.status(result.status || 200).send(result);
   } catch (error) {
     //incase of an error
     return res.status(500).send({
@@ -97,8 +97,9 @@ const getVerseConnections = async (req, res) => {
       verseKey
     );
 
-    res.send(result);
+    res.status(result.status || 200).send(result);
   } catch (error) {
+    console.log(error);
     //incase of an error
     return res.status(500).send({
       success: false,

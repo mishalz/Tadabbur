@@ -8,7 +8,7 @@ const Homepage = () => {
   return (
     <div id="homepage">
       {/* <VerseOfTheDay /> */}
-      <Bookmarked />
+      {/* <Bookmarked /> */}
       <SurahList />
     </div>
   );

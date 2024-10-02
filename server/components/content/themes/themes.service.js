@@ -98,7 +98,7 @@ const deleteThemes = async (userId, themeIds) => {
     const response = {
       success: true,
       status: 200,
-      message: `${deleted.deletedCount} themes deleted.`,
+      deletedCount: deleted.deletedCount,
     };
 
     //since the theme has been deleted, deleting the cache

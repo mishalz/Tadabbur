@@ -69,6 +69,7 @@ const getAllNotes = async (userId) => {
       return { success: true, status: 200, notes: notes };
     }
   } catch (error) {
+    console.log(error);
     //incase of an error
     return {
       success: false,
@@ -81,6 +82,10 @@ const getAllNotes = async (userId) => {
 //function to retrieve all notes of a verse either from the cache or from the database
 const getVerseNotes = async (userId, verseKey) => {
   try {
+    //first validate verse key
+    const verseData = await quranService.getVerseData(verseKey);
+    if (!verseData.success) return verseData;
+
     //first check cache
     const cacheKey = `notes-${userId}-${verseKey}`;
     let notes = Cache.checkCache(cacheKey);
@@ -128,14 +133,17 @@ const updateNote = async (noteId, data) => {
       { $set: { heading, content, colour } },
       { upsert: false }
     );
-
+    if (!updateNote.userId) {
+      throw new Error("The note does not exist");
+    }
     //if everything works fine, a success response is sent back.
-    const response = { success: true, status: 200, message: "Note updated!" };
+    const response = { success: true, status: 201, message: "Note updated!" };
     //since a note has been changed, the old cache needs to be deleted.
     Cache.deleteCache(`notes-${updatedNote.userId}-${updatedNote.verseKey}`);
     Cache.deleteCache(`notes-${updatedNote.userId}`);
     return response;
   } catch (err) {
+    console.log(err);
     //incase of an error
     return {
       success: false,

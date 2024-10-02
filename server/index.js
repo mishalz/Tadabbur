@@ -39,3 +39,5 @@ app.use((err, _, res, next) => {
 app.listen(PORT, () => {
   console.log("The server is up and running!");
 });
+
+module.exports = app;

@@ -1,0 +1,182 @@
+{
+  "numFailedTestSuites": 0,
+  "numFailedTests": 0,
+  "numPassedTestSuites": 1,
+  "numPassedTests": 8,
+  "numPendingTestSuites": 0,
+  "numPendingTests": 0,
+  "numRuntimeErrorTestSuites": 0,
+  "numTodoTests": 0,
+  "numTotalTestSuites": 1,
+  "numTotalTests": 8,
+  "openHandles": [],
+  "snapshot": {
+    "added": 0,
+    "didUpdate": false,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0
+  },
+  "startTime": 1727868709450,
+  "success": false,
+  "testResults": [
+    {
+      "leaks": false,
+      "numFailingTests": 0,
+      "numPassingTests": 8,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "openHandles": [],
+      "perfStats": {
+        "end": 1727868713133,
+        "runtime": 3645,
+        "slow": false,
+        "start": 1727868709488
+      },
+      "skipped": false,
+      "snapshot": {
+        "added": 0,
+        "fileDeleted": false,
+        "matched": 0,
+        "unchecked": 0,
+        "uncheckedKeys": [],
+        "unmatched": 0,
+        "updated": 0
+      },
+      "testFilePath": "/Users/mishalzulfiqar/Desktop/Thesis/tadabbur/server/tests/bookmarks.test.js",
+      "testResults": [
+        {
+          "ancestorTitles": [
+            "GET /content/conenctions"
+          ],
+          "duration": 45,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "GET /content/conenctions should have a status of 401 and an appropriate message since the token is missing",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a status of 401 and an appropriate message since the token is missing"
+        },
+        {
+          "ancestorTitles": [
+            "GET /content/conenctions"
+          ],
+          "duration": 6,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "GET /content/conenctions should have a status of 401 and an appropriate message since the token is invalid",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a status of 401 and an appropriate message since the token is invalid"
+        },
+        {
+          "ancestorTitles": [
+            "GET /content/conenctions"
+          ],
+          "duration": 1800,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "GET /content/conenctions should have a success property of true and an appropriate message since the user has no bookmarks currently",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a success property of true and an appropriate message since the user has no bookmarks currently"
+        },
+        {
+          "ancestorTitles": [
+            "GET /content/conenctions"
+          ],
+          "duration": 535,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "GET /content/conenctions should have a success property of true, status of 200 and a bookmarks array",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a success property of true, status of 200 and a bookmarks array"
+        },
+        {
+          "ancestorTitles": [
+            "POST /content/connections/"
+          ],
+          "duration": 155,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "POST /content/connections/ should have a status of 404 and an appropriate message since the verse key given to be bookmarked is invalid",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a status of 404 and an appropriate message since the verse key given to be bookmarked is invalid"
+        },
+        {
+          "ancestorTitles": [
+            "POST /content/connections/"
+          ],
+          "duration": 3,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "POST /content/connections/ should have a status of 401 and an appropriate message since the token is invalid",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a status of 401 and an appropriate message since the token is invalid"
+        },
+        {
+          "ancestorTitles": [
+            "POST /content/connections/"
+          ],
+          "duration": 2,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "POST /content/connections/ should have a status of 401 and an appropriate message since the token is missing",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a status of 401 and an appropriate message since the token is missing"
+        },
+        {
+          "ancestorTitles": [
+            "POST /content/connections/"
+          ],
+          "duration": 405,
+          "failureDetails": [],
+          "failureMessages": [],
+          "fullName": "POST /content/connections/ should have a success property of true, status of 201 and bookmark should be added successfully",
+          "invocations": 1,
+          "location": null,
+          "numPassingAsserts": 2,
+          "retryReasons": [],
+          "status": "passed",
+          "title": "should have a success property of true, status of 201 and bookmark should be added successfully"
+        }
+      ],
+      "failureMessage": null
+    }
+  ],
+  "wasInterrupted": false
+}

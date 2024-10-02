@@ -4,7 +4,20 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
+  },
+  "jest": {
+    "reporters": [
+      "default",
+      [
+        "jest-stare",
+        {
+          "resultDir": "jest-stare",
+          "reportTitle": "API Test Report",
+          "coverageLink": "../coverage/lcov-report/index.html"
+        }
+      ]
+    ]
   },
   "keywords": [],
   "author": "",
@@ -24,5 +37,10 @@
     "neo4j-driver": "^5.25.0",
     "node-cache": "^5.1.2",
     "nodemon": "^3.1.7"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-stare": "^2.5.2",
+    "supertest": "^7.0.0"
   }
 }

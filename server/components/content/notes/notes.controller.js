@@ -5,7 +5,7 @@ const quranService = require("../../quran-retrieval/quran.service");
 const getAllUserNotes = async (req, res) => {
   //extracting the user id from the req
   const userId = req.user.id;
-
+  console.log(userId);
   //retrieve all notes
   const notes = await noteService.getAllNotes(userId);
 

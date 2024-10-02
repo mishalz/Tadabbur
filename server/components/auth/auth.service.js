@@ -22,7 +22,8 @@ const validateUser = (token) => {
   try {
     //verify the token validity using jwt
     return jwt.verify(token, secretKey, (err, decoded) => {
-      if (err) return { success: false, status: 401 }; //throw error if token is invalid
+      if (err)
+        return { success: false, status: 401, message: "token is invalid" }; //throw error if token is invalid
       return { success: true, status: 200, user: decoded };
     });
   } catch (err) {
@@ -36,20 +37,21 @@ const validateToken = (req, res, next) => {
     //get the token from the header
     const authHeader = req.headers["authorization"];
     const token = authHeader ? authHeader.split(" ")[1] : null;
-
-    console.log(req.headers);
     //throw an error if the token doesnot exist
     if (!token) {
-      throw new AuthenticationError("Token missing.");
+      throw new AuthenticationError("Token is missing.");
     }
 
     //verify the token validity using jwt
     jwt.verify(token, secretKey, (err, decoded) => {
       if (err) throw new AuthenticationError("Invalid token."); //throw error if token is invalid
       req.user = decoded;
+      console.log("decoded:");
+      console.log(decoded);
       next();
     });
   } catch (error) {
+    console.log(error);
     //standard error response for any internal server error
     const response = {
       success: false,

@@ -129,10 +129,17 @@ const filterForSearch = (searchQuery, surahList) => {
       keys: ["name_simple", "name_complex", "translated_name.name"], //the keys to search in
       threshold: 0.6, //a value between 0 and 1, the higher the threshold the less it performs exact matching
     };
-    const list = JSON.parse(surahList);
-    const fuse = new Fuse(list.chapters, fuseOptions);
-    return { success: true, results: fuse.search(searchQuery) };
+
+    // console.log(surahList);
+    // const list = JSON.parse(surahList); //get a JS object
+
+    //perform the search
+    const fuse = new Fuse(surahList.chapters, fuseOptions);
+    const searchResults = fuse.search(searchQuery);
+
+    return { success: true, results: searchResults };
   } catch (error) {
+    console.log(error);
     const response = {
       success: false,
       status: 500,

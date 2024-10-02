@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Verse from "../components/Verse";
+import "../styling/StudySpace.css";
 const StudySpacePage = () => {
   const [verses, setVerses] = useState([]);
   const [page, setPage] = useState(1);
@@ -42,6 +43,7 @@ const StudySpacePage = () => {
         ))}
         {nextPageExist && (
           <button
+            id="load-button"
             onClick={() => {
               setPage((x) => x + 1);
             }}

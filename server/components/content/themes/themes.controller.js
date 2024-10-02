@@ -1,4 +1,5 @@
 const themeService = require("./themes.service");
+const quranService = require("../../quran-retrieval/quran.service");
 
 //function to send back all themes in response to a get request
 const getAllThemes = async (req, res) => {
@@ -107,6 +108,10 @@ const getAllThemesOfVerse = async (req, res) => {
     return res
       .status(400)
       .send({ success: false, status: 400, message: "Invalid request" });
+
+  //first validate the verse key to see the verse exist
+  const verse = await quranService.getVerseData(verseKey);
+  if (!verse.success) return res.status(verse.status).send(verse); //if the validity function returns an error response object
 
   //send the verse key to fetch all themes that the verse is added to
   const themes = await themeService.getVerseThemes(userId, verseKey);

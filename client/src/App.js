@@ -23,11 +23,11 @@ function App() {
         <div className="main-content">
           <LoginModal openModal={openAuthModal} handleClose={handleClose} />
           <Routes>
-            <Route path={routes.home} exact element={<Homepage />} />
-            <Route path={routes.studySpace} element={<StudySpacePage />} />
-            <Route path={routes.connections} element={<ConnectionsPage />} />
-            <Route path={routes.themes} element={<ThemesPage />} />
-            <Route path={routes.notes} element={<NotesPage />} />
+            <Route path="/" exact element={<Homepage />} />
+            <Route path="/studyspace" element={<StudySpacePage />} />
+            <Route path="/connections" element={<ConnectionsPage />} />
+            <Route path="/themes" element={<ThemesPage />} />
+            <Route path="/notes" element={<NotesPage />} />
           </Routes>
         </div>
       </div>
