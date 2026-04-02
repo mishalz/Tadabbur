@@ -1,8 +1,8 @@
-const { Theme, AddedToTheme } = require("./themes.model");
-const Joi = require("joi");
-const quranService = require("../../quran-retrieval/quran.service");
-const Cache = require("../../../utils/Cache");
-const Validation = require("../../../utils/Validation");
+import { Theme, AddedToTheme } from "./themes.model.js";
+import Joi from "joi";
+import quranService from "../../quran-retrieval/quran.service.js";
+import Cache from "../../../utils/Cache.js";
+import Validation from "../../../utils/Validation.js";
 
 //Joi schema to validate the theme data
 const themeSchema = Joi.object({
@@ -290,7 +290,7 @@ const getVerseThemes = async (userId, verseKey) => {
   }
 };
 
-module.exports = {
+export default {
   saveTheme,
   getThemes,
   addVerseToTheme,

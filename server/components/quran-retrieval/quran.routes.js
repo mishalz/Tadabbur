@@ -1,12 +1,16 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
+import {
+  getAllSurahs,
+  getSurahData,
+  getRandomVerse,
+  getVerseDataRouteHandler,
+} from "./quran.controller.js";
 
-const quranController = require("./quran.controller");
-
-router.get("/surahs", quranController.getAllSurahs);
-router.get("/surahs/:id", quranController.getSurahData);
-router.get("/verses/random", quranController.getRandomVerse);
-router.get("/verses/:verse_key", quranController.getVerseDataRouteHandler);
+router.get("/surahs", getAllSurahs);
+router.get("/surahs/:id", getSurahData);
+router.get("/verses/random", getRandomVerse);
+router.get("/verses/:verse_key", getVerseDataRouteHandler);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

@@ -1,10 +1,10 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const bookmarkController = require("./bookmarks.controller");
+import { getAllBookmarks, bookmarkVerse } from "./bookmarks.controller.js";
 
 //all routes relating to bookmarks
-router.get("/", bookmarkController.getAllBookmarks);
-router.post("/", bookmarkController.bookmarkVerse);
+router.get("/", getAllBookmarks);
+router.post("/", bookmarkVerse);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

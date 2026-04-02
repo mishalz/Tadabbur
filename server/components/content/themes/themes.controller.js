@@ -1,5 +1,5 @@
-const themeService = require("./themes.service");
-const quranService = require("../../quran-retrieval/quran.service");
+import themeService from "./themes.service.js";
+import quranService from "../../quran-retrieval/quran.service.js";
 
 //function to send back all themes in response to a get request
 const getAllThemes = async (req, res) => {
@@ -58,7 +58,7 @@ const removeVersesFromTheme = async (req, res) => {
   //send a request to remove the specific verses
   const removedVerses = await themeService.removeVersesFromTheme(
     themeId,
-    verseKeys
+    verseKeys,
   );
   //return the response with the correct status code
   return res.status(removedVerses.status).send(removedVerses);
@@ -81,7 +81,7 @@ const addVerseToTheme = async (req, res) => {
   const savedVerse = await themeService.addVerseToTheme(
     userId,
     themeId,
-    verseKey
+    verseKey,
   );
   //return the response with the correct status code
   return res.status(savedVerse.status).send(savedVerse);
@@ -119,7 +119,7 @@ const getAllThemesOfVerse = async (req, res) => {
   return res.status(themes.status).send(themes);
 };
 
-module.exports = {
+export default {
   getAllThemes,
   deleteThemes,
   createTheme,

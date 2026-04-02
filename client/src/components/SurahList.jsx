@@ -5,10 +5,12 @@ import "../styling/SurahList.css";
 
 function SurahList() {
   const [surahlist, setSurahList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   //retrieving the surah list on page load and every time the surah list changes
   useEffect(() => {
+    setLoading(true);
     axios
       .get("/quran/surahs", {
         headers: {
@@ -16,21 +18,28 @@ function SurahList() {
         },
       })
       .then((res) => {
-        const response = res.data;
-        console.log(res.data.chapters);
-        if (response.success) {
+       
+        console.log("Surah list response:", res);
+        if (res.status === 200) {
           setError(null);
           setSurahList(res.data.chapters);
-        } else setError(response.message);
+        } else setError(res.data.message);
+        setLoading(false);
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
   return (
     <div className="surah-list-section">
       <h1>Surahs</h1>
       <div className="surah-list">
-        {surahlist &&
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          surahlist &&
           surahlist.length != 0 &&
           surahlist.map((surah) => (
             <SurahItem
@@ -39,14 +48,14 @@ function SurahList() {
               arabicName={surah.name_simple}
               englishName={surah.translated_name.name}
             />
-          ))}
+          ))
+        )}
 
-        {error ||
-          (surahlist.length == 0 && (
-            <div>
-              <p>Could not load the surahs. Please try again.</p>
-            </div>
-          ))}
+        {error && surahlist.length == 0 && (
+          <div>
+            <p>Could not load the surahs. Please try again.</p>
+          </div>
+        )}
       </div>
     </div>
   );

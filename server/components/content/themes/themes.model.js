@@ -1,6 +1,6 @@
 //define the mongoose schema for the themes resource
-const contentDBConnection = require("../content.db");
-const mongoose = require("mongoose");
+import contentDBConnection from "../content.db.js";
+import mongoose from "mongoose";
 
 //schema for the theme resource
 const themeSchema = new mongoose.Schema(
@@ -11,7 +11,7 @@ const themeSchema = new mongoose.Schema(
     icon: { type: String, required: true },
     colour: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 //schema to define the relationship between the verses and the themes
@@ -24,7 +24,7 @@ const themeVerseSchema = new mongoose.Schema(
     arabicText: { type: String, required: true },
     translation: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 //defining the indexes for both the schemas
@@ -34,10 +34,8 @@ themeSchema.index({ userId: 1, name: 1 }, { unique: true });
 themeVerseSchema.index({ verseKey: 1, themeId: 1 }, { unique: true });
 
 //define the models for both the schema
-const Theme = contentDBConnection.model("Theme", themeSchema);
-const AddedToTheme = contentDBConnection.model(
+export const Theme = contentDBConnection.model("Theme", themeSchema);
+export const AddedToTheme = contentDBConnection.model(
   "AddedToTheme",
-  themeVerseSchema
+  themeVerseSchema,
 );
-
-module.exports = { Theme, AddedToTheme };

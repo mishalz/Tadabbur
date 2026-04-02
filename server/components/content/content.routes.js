@@ -1,10 +1,10 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const notesRoutes = require("./notes/notes.routes");
-const themesRoutes = require("./themes/themes.routes");
-const bookmarkRoutes = require("./bookmarks/bookmarks.routes");
-const connectionsRoutes = require("./connections/connections.routes");
+import notesRoutes from "./notes/notes.routes.js";
+import themesRoutes from "./themes/themes.routes.js";
+import bookmarkRoutes from "./bookmarks/bookmarks.routes.js";
+import connectionsRoutes from "./connections/connections.routes.js";
 
 //forwarding all routes relating to contents (notes, themes, connections and bookmark) to their specific sub directories
 router.use("/notes", notesRoutes);
@@ -13,4 +13,4 @@ router.use("/connections", connectionsRoutes);
 router.use("/bookmarks", bookmarkRoutes);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

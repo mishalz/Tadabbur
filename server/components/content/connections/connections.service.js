@@ -1,7 +1,7 @@
-const Joi = require("joi");
-const getDriver = require("./connections.db");
-const quranService = require("../../quran-retrieval/quran.service");
-const Cache = require("../../../utils/Cache");
+import Joi from "joi";
+import { getDriver } from "./connections.db.js";
+import quranService from "../../quran-retrieval/quran.service.js";
+import Cache from "../../../utils/Cache.js";
 
 const driver = getDriver();
 
@@ -16,7 +16,7 @@ const connectionSchema = Joi.object({
   note: Joi.string(),
 });
 
-const validateInput = (data) => {
+export const validateInput = (data) => {
   const { error, value } = connectionSchema.validate(data); //if the schema is valid, the error will be undefined, otherwise the error will have the Joi ValidationError object.
   if (error)
     return { success: false, status: 422, message: error.details[0].message };
@@ -25,7 +25,7 @@ const validateInput = (data) => {
 };
 
 //to validate that the verses exist and get data required for creating a connection
-const validateAndGetVersePair = async (fromVerse, toVerse) => {
+export const validateAndGetVersePair = async (fromVerse, toVerse) => {
   const fromVerseData = await quranService.getVerseData(fromVerse);
   const toVerseData = await quranService.getVerseData(toVerse);
 
@@ -46,7 +46,11 @@ const validateAndGetVersePair = async (fromVerse, toVerse) => {
   }
 };
 
-const checkConnectionExists = async (fromVerseKey, toVerseKey, userId) => {
+export const checkConnectionExists = async (
+  fromVerseKey,
+  toVerseKey,
+  userId,
+) => {
   let session = driver.session({ database: "tadabbur" });
   try {
     //first check cache if the connection is stored there
@@ -64,7 +68,7 @@ const checkConnectionExists = async (fromVerseKey, toVerseKey, userId) => {
         `MATCH (v1:Verse)-[r:CONNECTED]-(v2:Verse) 
         WHERE v1.key = $fromVerseKey AND r.userId = $userId AND v2.key = $toVerseKey
         RETURN r`,
-        { fromVerseKey, toVerseKey, userId }
+        { fromVerseKey, toVerseKey, userId },
       );
     });
 
@@ -81,7 +85,7 @@ const checkConnectionExists = async (fromVerseKey, toVerseKey, userId) => {
 };
 
 //save the connection to the database
-const saveConnection = async (userId, fromVerse, toVerse, note = "") => {
+export const saveConnection = async (userId, fromVerse, toVerse, note = "") => {
   let session = driver.session({ database: "tadabbur" });
   try {
     //writing to the database
@@ -91,7 +95,7 @@ const saveConnection = async (userId, fromVerse, toVerse, note = "") => {
          MERGE (v2:Verse {key: $toVerse.key, arabicText:$toVerse.text_indopak,translation:$toVerse.translation})
          MERGE (v1)-[r:CONNECTED {note: $note, userId: $userId}]-(v2)
          RETURN v1.key,r.note,v2.key`,
-        { fromVerse, toVerse, note, userId }
+        { fromVerse, toVerse, note, userId },
       );
     });
 
@@ -108,7 +112,7 @@ const saveConnection = async (userId, fromVerse, toVerse, note = "") => {
 };
 
 //function to retrieve all connections either from the cache or from the database
-const getAllConnections = async (userId) => {
+export const getAllConnections = async (userId) => {
   let session = driver.session({ database: "tadabbur" });
   try {
     //first check cache if the connection is stored there
@@ -123,7 +127,7 @@ const getAllConnections = async (userId) => {
         `MATCH (v1:Verse)-[r:CONNECTED]->(v2:Verse) 
         WHERE r.userId = $userId
         RETURN DISTINCT v1,r.note,v2`,
-        { userId }
+        { userId },
       );
     });
 
@@ -150,7 +154,7 @@ const getAllConnections = async (userId) => {
 };
 
 //get all connections for one specific verse
-const getVerseConnections = async (userId, verseKey) => {
+export const getVerseConnections = async (userId, verseKey) => {
   let session = driver.session({ database: "tadabbur" });
   try {
     //check if the passed verse key is valid
@@ -174,7 +178,7 @@ const getVerseConnections = async (userId, verseKey) => {
         `MATCH (v1:Verse)-[r:CONNECTED]->(v2:Verse) 
         WHERE r.userId = $userId AND v1.key = $verseKey OR v2.key = $verseKey
         RETURN DISTINCT v1,r.note,v2`,
-        { userId, verseKey }
+        { userId, verseKey },
       );
     });
 
@@ -204,7 +208,7 @@ const getVerseConnections = async (userId, verseKey) => {
 };
 
 //helper function to format the connections array recieved from the database to only contain required fields
-const getFormattedConnections = (connections) => {
+export const getFormattedConnections = (connections) => {
   const formattedConnections = connections.records.map(({ _fields }) => {
     return {
       fromVerse: {
@@ -221,12 +225,4 @@ const getFormattedConnections = (connections) => {
     };
   });
   return formattedConnections;
-};
-module.exports = {
-  validateInput,
-  validateAndGetVersePair,
-  checkConnectionExists,
-  saveConnection,
-  getAllConnections,
-  getVerseConnections,
 };

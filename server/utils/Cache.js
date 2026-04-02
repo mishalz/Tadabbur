@@ -1,4 +1,4 @@
-const NodeCache = require("node-cache");
+import NodeCache from "node-cache";
 const cache = new NodeCache({});
 
 const checkCache = (key) => {
@@ -18,8 +18,13 @@ const deleteCache = (key) => {
 const seeCachedData = () => {
   const keys = cache.keys();
   keys.forEach((key) =>
-    console.log(`key: ${key}, data: ${JSON.stringify(cache.get(key))}`)
+    console.log(`key: ${key}, data: ${JSON.stringify(cache.get(key))}`),
   );
 };
 
-module.exports = { checkCache, updateCache, deleteCache, seeCachedData };
+export default {
+  checkCache,
+  updateCache,
+  deleteCache,
+  seeCachedData,
+};

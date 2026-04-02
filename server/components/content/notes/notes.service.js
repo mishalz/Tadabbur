@@ -1,8 +1,8 @@
-const Note = require("./notes.model");
-const Joi = require("joi");
-const quranService = require("../../quran-retrieval/quran.service");
-const Cache = require("../../../utils/Cache");
-const Validation = require("../../../utils/Validation");
+import Note from "./notes.model.js";
+import Joi from "joi";
+import quranService from "../../quran-retrieval/quran.service.js";
+import Cache from "../../../utils/Cache.js";
+import Validation from "../../../utils/Validation.js";
 
 //schema to validate user input for note creation and update
 const noteSchema = Joi.object({
@@ -131,7 +131,7 @@ const updateNote = async (noteId, data) => {
     const updatedNote = await Note.findByIdAndUpdate(
       noteId,
       { $set: { heading, content, colour } },
-      { upsert: false }
+      { upsert: false },
     );
     if (!updateNote.userId) {
       throw new Error("The note does not exist");
@@ -165,7 +165,7 @@ const deleteNotes = async (noteIds) => {
   }
 };
 
-module.exports = {
+export default {
   saveNote,
   getAllNotes,
   updateNote,

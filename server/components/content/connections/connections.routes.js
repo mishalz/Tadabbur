@@ -1,11 +1,11 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const connectContoller = require("./connections.controller");
+import connectContoller from "./connections.controller.js";
 
 //all routes relating to connections
 router.get("/", connectContoller.getAllUserConnections);
 router.post("/", connectContoller.createConnection);
-router.get("/:verse_key", connectContoller.getVerseConnections);
+router.get("/:verse_key", connectContoller.getAllVerseConnections);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

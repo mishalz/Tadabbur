@@ -1,4 +1,11 @@
-const connectionsService = require("./connections.service");
+import {
+  validateInput,
+  validateAndGetVersePair,
+  checkConnectionExists,
+  saveConnection,
+  getAllConnections,
+  getVerseConnections,
+} from "./connections.service.js";
 
 //function to add a new function
 const createConnection = async (req, res) => {
@@ -8,7 +15,7 @@ const createConnection = async (req, res) => {
     const userId = user.id;
 
     //validate the user input
-    const validatedInput = connectionsService.validateInput(req.body);
+    const validatedInput = validateInput(req.body);
     if (!validatedInput.success)
       return res.status(validatedInput.status).send(validatedInput);
 
@@ -18,18 +25,11 @@ const createConnection = async (req, res) => {
     } = validatedInput;
 
     //first validate the verse keys to see the verses exist
-    const verses = await connectionsService.validateAndGetVersePair(
-      fromVerse,
-      toVerse
-    );
+    const verses = await validateAndGetVersePair(fromVerse, toVerse);
     if (!verses.success) return res.status(verses.status).send(verses); //if the validity function returns an error response object
 
     //check if a connection already exists between the two verses
-    const exists = await connectionsService.checkConnectionExists(
-      fromVerse,
-      toVerse,
-      userId
-    );
+    const exists = await checkConnectionExists(fromVerse, toVerse, userId);
     if (exists) {
       //if connection exists, send back an error response object
       return res.status(400).send({
@@ -40,12 +40,12 @@ const createConnection = async (req, res) => {
     }
 
     //if keys are valid and the connection does not exist
-    const data = await connectionsService.saveConnection(
+    const data = await saveConnection(
       //save the connection
       userId,
       verses.fromVerse,
       verses.toVerse,
-      note
+      note,
     );
 
     if (data.success)
@@ -70,7 +70,7 @@ const getAllUserConnections = async (req, res) => {
   const userId = user.id;
   try {
     //retrieving all connections through the user id
-    const result = await connectionsService.getAllConnections(userId);
+    const result = await getAllConnections(userId);
 
     return res.status(result.status || 200).send(result);
   } catch (error) {
@@ -84,7 +84,7 @@ const getAllUserConnections = async (req, res) => {
 };
 
 //function to retrieve all connections of a verse
-const getVerseConnections = async (req, res) => {
+const getAllVerseConnections = async (req, res) => {
   //getting the user details and verse key from the URL parameters
   const verseKey = req.params.verse_key;
   const user = req.user;
@@ -92,10 +92,7 @@ const getVerseConnections = async (req, res) => {
 
   try {
     //retrieving all connections through the user id
-    const result = await connectionsService.getVerseConnections(
-      userId,
-      verseKey
-    );
+    const result = await getVerseConnections(userId, verseKey);
 
     res.status(result.status || 200).send(result);
   } catch (error) {
@@ -109,8 +106,8 @@ const getVerseConnections = async (req, res) => {
   }
 };
 
-module.exports = {
+export default {
   createConnection,
   getAllUserConnections,
-  getVerseConnections,
+  getAllVerseConnections,
 };

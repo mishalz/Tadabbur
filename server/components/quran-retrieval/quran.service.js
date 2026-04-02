@@ -1,8 +1,5 @@
-const axios = require("axios");
-const Cache = require("../../utils/Cache");
-const Fuse = require("fuse.js");
-//API endpoint mappings
-const { verseByKey } = require("./quran.api");
+import axios from "axios";
+import Fuse from "fuse.js";
 
 const parametersConfig = {
   translations: 131,
@@ -18,61 +15,32 @@ const getURLQueryString = (options) => {
   return string;
 };
 
-const fetchDataFromAPI = (url) => {
-  let config = {
-    method: "get",
-    maxBodyLength: Infinity,
-    url: url,
-    headers: {
-      Accept: "application/json",
-    },
-  }; //configurations to send the request
+// const fetchDataFromAPI = (url) => {
+//   let config = {
+//     method: "get",
+//     maxBodyLength: Infinity,
+//     url: url,
+//     headers: {
+//       Accept: "application/json",
+//     },
+//   }; //configurations to send the request
 
-  return axios(config)
-    .then((response) => {
-      return { success: true, status: 200, ...response.data }; //returning the response received from the API
-    })
-    .catch((error) => {
-      return {
-        success: false,
-        status: error.status,
-        message: error.response.data.error
-          ? error.response.data.error
-          : error.message,
-      };
-    });
-};
-const getSurahName = async (surahNumber) => {
-  try {
-    let url = `https://api.quran.com/api/v4/chapters/${surahNumber}`;
-    const cacheKey = `surahinfo-${surahNumber}`;
-    let data = Cache.checkCache(cacheKey); //first check cache if cache key is given
+//   return axios(config)
+//     .then((response) => {
+//       return { success: true, status: 200, ...response.data }; //returning the response received from the API
+//     })
+//     .catch((error) => {
+//       return {
+//         success: false,
+//         status: error.status,
+//         message: error.response.data.error
+//           ? error.response.data.error
+//           : error.message,
+//       };
+//     });
+// };
 
-    if (data) {
-      return { success: true, status: 200, chapter: data };
-    }
-    data = await fetchDataFromAPI(`${url}`); //send request if the data is not found in the cache
-
-    if (data.success) Cache.updateCache(cacheKey, data.chapter);
-
-    return data;
-    //return the results
-  } catch (error) {
-    const response = {
-      success: false,
-      status: 500,
-      message:
-        "Could not retrieve the data. Check your internet and try again.", //standard error response
-    };
-    if (error instanceof axios.AxiosError) {
-      response.status = error.response.data.status;
-      response.message = error.response.data.error;
-    }
-
-    return response;
-  }
-};
-const getQuranData = async (url, addQueryString, cacheKey = "", ttl = 0) => {
+const getQuranData = async (func, addQueryString, cacheKey = "", ttl = 0) => {
   try {
     let data;
     if (!cacheKey == "") data = Cache.checkCache(cacheKey); //first check cache if cache key is given
@@ -80,9 +48,7 @@ const getQuranData = async (url, addQueryString, cacheKey = "", ttl = 0) => {
     const queryString = getURLQueryString(parametersConfig); //to get the parameters in the string form to be attached to the URL
 
     if (!data) {
-      data = await fetchDataFromAPI(
-        `${url}?${addQueryString ? queryString : null}`
-      ); //send request if the data is not found in the cache
+      const chapters = await client.chapters.findAll(); //send request if the data is not found in the cache
     }
 
     if (!cacheKey == "" && data.success) Cache.updateCache(cacheKey, data, ttl); //update cache with the retrieved data
@@ -106,23 +72,6 @@ const getQuranData = async (url, addQueryString, cacheKey = "", ttl = 0) => {
   }
 };
 
-const getVerseData = async (verseKey) => {
-  const url = `${verseByKey}${verseKey}`; //url to get verse data
-  const cacheKey = `verse${verseKey}`; //cache key to first search in the cache
-  let verseData = await getQuranData(url, true, cacheKey); //getting the verse data
-  if (verseData.success) {
-    verseData = {
-      success: true,
-      data: {
-        key: verseData.verse.verse_key,
-        text_indopak: verseData.verse.text_indopak,
-        translation: verseData.verse.translations[0].text,
-      },
-    };
-  }
-  return verseData; //return the results
-};
-
 const filterForSearch = (searchQuery, surahList) => {
   try {
     const fuseOptions = {
@@ -137,7 +86,7 @@ const filterForSearch = (searchQuery, surahList) => {
     const fuse = new Fuse(surahList.chapters, fuseOptions);
     const searchResults = fuse.search(searchQuery);
 
-    return { success: true, results: searchResults };
+    return { success: true, status: 200, results: searchResults };
   } catch (error) {
     console.log(error);
     const response = {
@@ -149,11 +98,8 @@ const filterForSearch = (searchQuery, surahList) => {
   }
 };
 
-module.exports = {
+export default {
   getQuranData,
-  filterForSearch,
   getURLQueryString,
-  getVerseData,
-  parametersConfig,
-  getSurahName,
+  filterForSearch,
 };

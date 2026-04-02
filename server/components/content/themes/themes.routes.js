@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const themesController = require("./themes.controller");
+import themesController from "./themes.controller.js";
 
 //all routes relating to themes
 router.get("/", themesController.getAllThemes);
@@ -12,4 +12,4 @@ router.get("/:theme_id/verses", themesController.getAllVersesForTheme);
 router.get("/:verse_key", themesController.getAllThemesOfVerse);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

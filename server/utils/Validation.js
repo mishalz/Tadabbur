@@ -7,4 +7,4 @@ const validateInput = (data, schema) => {
   } else if (value) return { success: true, status: 200, data: value }; //if there is no error, return the validated data
 };
 
-module.exports = { validateInput };
+export default { validateInput };

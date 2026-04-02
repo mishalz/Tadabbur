@@ -1,6 +1,6 @@
 //define the bookmark relationship model
-const contentDBConnection = require("../content.db");
-const mongoose = require("mongoose");
+import contentDBConnection from "../content.db.js";
+import mongoose from "mongoose";
 
 const bookmarkSchema = new mongoose.Schema(
   {
@@ -8,9 +8,8 @@ const bookmarkSchema = new mongoose.Schema(
     verseKey: { type: String, required: true },
     surahName: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Bookmark = contentDBConnection.model("Bookmark", bookmarkSchema);
-
-module.exports = Bookmark;
+export default Bookmark;

@@ -5,6 +5,7 @@ import { BiCategoryAlt } from "react-icons/bi";
 import { UserContext } from "../context/UserContext";
 
 function Verse({ verse }) {
+  console.log(verse);
   const [sectionOpen, setSectionOpen] = useState(false);
   const [dataToFetch, setDataToFetch] = useState(null);
   const [fetchedData, setFetchedData] = useState([]);
@@ -60,8 +61,8 @@ function Verse({ verse }) {
           <BiCategoryAlt className="icon" onClick={displayThemes} />
         </div>
         <div className="verse">
-          <div className="arabic-text">{verse.text_indopak}</div>
-          <div className="translation">{verse.translations[0].text}</div>
+          <div className="arabic-text">{verse.id}</div>
+          {/* <div className="translation">{verse.translations[0].text}</div> */}
         </div>
         <div className="verse-options">
           <button onClick={addThemeHandler}>Add To theme</button>

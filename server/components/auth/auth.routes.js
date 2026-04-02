@@ -1,13 +1,17 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
 //retrieving all route handler functions from the controller file
-const authController = require("./auth.controller.js");
+import {
+  registerUser,
+  loginUser,
+  validateUserToken,
+} from "./auth.controller.js";
 
 //all routes for auth
-router.post("/register", authController.registerUser);
-router.post("/login", authController.loginUser);
-router.get("/validate", authController.validateToken);
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.get("/validate", validateUserToken);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

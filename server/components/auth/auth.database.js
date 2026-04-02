@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import "dotenv/config";
 const dbURL = process.env.USER_DB_URL;
 
 //connecting to the mongoDB using mongoose
@@ -10,4 +11,4 @@ userDBConnection.on("error", (err) => {
   console.error("Failed to connect to user database.", err);
 });
 
-module.exports = userDBConnection;
+export default userDBConnection;

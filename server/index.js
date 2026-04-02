@@ -1,14 +1,14 @@
-require("dotenv").config({ path: "./.env" });
-const express = require("express");
-const bodyParser = require("body-parser");
+import "dotenv/config";
+import express from "express";
+import bodyParser from "body-parser";
 
 const PORT = process.env.PORT || 8000;
 
 //retrieving routes from specific components
-const authRoutes = require("./components/auth/auth.routes");
-const contentRoutes = require("./components/content/content.routes");
-const quranRoutes = require("./components/quran-retrieval/quran.routes");
-const authService = require("./components/auth/auth.service");
+import authRoutes from "./components/auth/auth.routes.js";
+import contentRoutes from "./components/content/content.routes.js";
+import quranRoutes from "./components/quran-retrieval/quran.routes.js";
+import { validateToken } from "./components/auth/auth.service.js";
 
 //starting the express app
 const app = express();
@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 
 //forwarding all routes to their specific component
 app.use("/auth", authRoutes);
-app.use("/content", authService.validateToken, contentRoutes);
+app.use("/content", validateToken, contentRoutes);
 app.use("/quran", quranRoutes);
 
 // Fallback route (Handles 404 errors)
@@ -37,7 +37,12 @@ app.use((err, _, res, next) => {
 
 //starting the server
 app.listen(PORT, () => {
-  console.log("The server is up and running!");
+  console.log(`Server is starting on port ${PORT}`);
+  try {
+    console.log("The server is up and running!");
+  } catch (err) {
+    console.log("Error in server startup:", err);
+  }
 });
 
-module.exports = app;
+export default app;

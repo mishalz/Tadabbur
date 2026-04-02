@@ -1,5 +1,5 @@
 //database configuration for the notes, themes and bookmarks
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const dbURL = process.env.CONTENT_DB_URL;
 
 //connecting to the mongoDB using mongoose
@@ -12,4 +12,4 @@ contentDBConnection.on("error", (err) => {
   console.error("Failed to connect to content database.", err);
 });
 
-module.exports = contentDBConnection;
+export default contentDBConnection;

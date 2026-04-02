@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const notesController = require("./notes.controller");
+import notesController from "./notes.controller.js";
 
 //all routes relating to notes
 router.get("/", notesController.getAllUserNotes);
@@ -10,4 +10,4 @@ router.get("/:verse_key", notesController.getNotesForAVerse);
 router.put("/:note_id", notesController.editNote);
 
 //exporting the routes to be integrated into the index.js
-module.exports = router;
+export default router;

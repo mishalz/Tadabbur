@@ -1,127 +1,126 @@
-const authService = require("./auth.service");
-const { ConflictError, AuthenticationError } = require("../../utils/Errors");
+import {
+  validateToken,
+  validateInputData,
+  encryptPassword,
+  sendToDatabase,
+  getUserByEmail,
+  matchPassword,
+  generateToken,
+  validateUser,
+} from "./auth.service.js";
+import {
+  ConflictError,
+  AuthenticationError,
+  InvalidInputError,
+} from "../../utils/Errors.js";
 
 //To add a new user to the system
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   try {
     //validate the input data
-    const responseData = authService.validateInputData("register", req.body);
+    const responseData = validateInputData("register", req.body);
     const validData = responseData.data;
 
-    if (responseData.success == false)
+    if (!responseData.success)
       //if validation returns an error
-      return res.status(responseData.status).send(responseData);
+      throw new InvalidInputError(responseData.message);
     //check if the email is already registered
 
-    const { exists } = await authService.getUserByEmail(validData.email);
+    const { exists } = await getUserByEmail(validData.email);
     if (exists) {
       throw new ConflictError("A user already registered with this email.");
     }
 
     //encrypt the password
-    const encryptedPassword = await authService.encryptPassword(
-      validData.password
-    );
+    const encryptedPassword = await encryptPassword(validData.password);
     validData.password = encryptedPassword;
 
     //send the validated data with the encrypted password to the database
-    authService.sendToDatabase(validData);
+    const registeredUser = await sendToDatabase(validData);
 
     //if everything works fine, a success response is sent back.
     const response = {
-      success: true,
-      status: 201,
       message: "Registration Successful!",
+      data: registeredUser,
     };
-    res.status(response.status).send(response);
+    res.status(201).send(response);
   } catch (error) {
-    //standard error response for any internal server error
-
+    // error response for any internal server error or custom defined errors
     const response = {
-      success: false,
-      status: 500,
+      status: error.statusCode ?? 500,
       message: error.message,
     };
 
-    //if the error is validation related or a custom conflict error, then the specific error message is returned
-    if (error instanceof ConflictError) {
-      response.message = error.message;
-      response.status = error.statusCode;
-    }
-
-    res.status(response.status).send(response);
+    res.status(response.status).send({ message: response.message });
   }
 };
 
 //Authenticate an existing user.
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
     //validate the input data
-    const validData = authService.validateInputData("login", req.body);
+    const responseData = validateInputData("login", req.body);
+    const validData = responseData.data;
 
-    if (validData.success == false)
+    if (!responseData.success)
       //if validation returns an error
-      return res.status(validData.status).send(validData);
+      throw new InvalidInputError(responseData.message);
 
     //get user by email
-    const existingUser = await authService.getUserByEmail(validData.data.email);
+    const existingCheck = await getUserByEmail(validData.email);
 
-    if (!existingUser.exists)
+    if (!existingCheck.exists)
       throw new ConflictError("The email is not registered.");
 
     //to match the hashed password retrieved from the database and the user entered password
-    const match = await authService.matchPassword(
+    const match = await matchPassword(
       validData.data.password,
-      existingUser.user.password
+      existingCheck.user.password,
     );
 
-    if (match == false) {
+    if (!match) {
       //throw an authentication error since the passwords do not match
       throw new AuthenticationError("The password is incorrect.");
-    } else if (match == true) {
+    } else if (match) {
       //if passwords match
-      const token = authService.generateToken(existingUser.user);
+      const token = generateToken(existingCheck.user);
       //the response to be sent back
       const response = {
-        success: true,
         message: "Login Successful!",
         token: token,
-        username: existingUser.user.username,
+        username: existingCheck.user.username,
       };
       res.status(200).send(response);
     }
   } catch (error) {
-    //standard error response for any internal server error
-    console.log(error);
+    // error response for any internal server error or custom defined errors
     const response = {
-      success: false,
-      status: 500,
+      status: error.statusCode ?? 500,
       message: error.message,
     };
 
-    //for all validation or custom built errors, the appropriate error message is returned
-    if (
-      error instanceof ConflictError ||
-      error instanceof AuthenticationError
-    ) {
-      response.message = error.message;
-      response.status = error.statusCode;
-    }
-
-    res.status(response.status).send(response);
+    res.status(response.status).send({ message: response.message });
   }
 };
 
-const validateToken = (req, res) => {
-  //get the token from the header
-  const authHeader = req.headers["authorization"];
-  const token = authHeader ? authHeader.split(" ")[1] : null;
-  if (!token)
-    return res
-      .status(401)
-      .send({ success: false, status: 401, message: "token is missing" });
+export const validateUserToken = (req, res) => {
+  try {
+    //get the token from the header
+    const authHeader = req.headers["authorization"];
+    const token = authHeader ? authHeader.split(" ")[1] : null;
+    if (!token) throw new AuthenticationError("Token is missing.");
+    const response = validateUser(token);
 
-  const response = authService.validateUser(token);
-  return res.status(response.status).send(response);
+    return res
+      .status(200)
+      .send({ message: "Token is valid.", user: response.user });
+  } catch (error) {
+    // error response for any internal server error or custom defined errors
+    const response = {
+      status: error.statusCode ?? 500,
+      message: error.message,
+    };
+
+    res.status(response.status).send({ message: response.message });
+  }
 };
-module.exports = { registerUser, loginUser, validateToken };

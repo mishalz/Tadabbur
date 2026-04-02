@@ -1,5 +1,5 @@
-const noteService = require("./notes.service");
-const quranService = require("../../quran-retrieval/quran.service");
+import noteService from "./notes.service.js";
+import quranService from "../../quran-retrieval/quran.service.js";
 
 //to get all notes for a user
 const getAllUserNotes = async (req, res) => {
@@ -62,7 +62,7 @@ const deleteNotes = async (req, res) => {
   return res.status(response.status).send(response);
 };
 
-module.exports = {
+export default {
   getAllUserNotes,
   getNotesForAVerse,
   addNewNote,

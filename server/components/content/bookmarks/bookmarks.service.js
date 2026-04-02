@@ -1,10 +1,10 @@
-const Bookmark = require("./bookmarks.model");
-const Joi = require("joi");
-const quranService = require("../../quran-retrieval/quran.service");
-const Cache = require("../../../utils/Cache");
-const Validation = require("../../../utils/Validation");
+import Bookmark from "./bookmarks.model.js";
+import Joi from "joi";
+import quranService from "../../quran-retrieval/quran.service.js";
+import Cache from "../../../utils/Cache.js";
+import Validation from "../../../utils/Validation.js";
 
-const addBookmark = async (userId, verseKey) => {
+export const addBookmark = async (userId, verseKey) => {
   try {
     //validate verse key
     const verse = await quranService.getVerseData(verseKey);
@@ -51,7 +51,7 @@ const addBookmark = async (userId, verseKey) => {
   }
 };
 
-const getBookmarks = async (userId) => {
+export const getBookmarks = async (userId) => {
   try {
     //first check cache
     const cacheKey = `bookmarks-${userId}`;
@@ -83,5 +83,3 @@ const getBookmarks = async (userId) => {
     };
   }
 };
-
-module.exports = { addBookmark, getBookmarks };

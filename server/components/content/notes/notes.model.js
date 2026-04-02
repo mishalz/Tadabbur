@@ -1,6 +1,6 @@
 //define the notes model
-const contentDBConnection = require("../content.db");
-const mongoose = require("mongoose");
+import contentDBConnection from "../content.db.js";
+import mongoose from "mongoose";
 
 const noteSchema = new mongoose.Schema(
   {
@@ -10,9 +10,8 @@ const noteSchema = new mongoose.Schema(
     content: { type: String, required: true },
     colour: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Note = contentDBConnection.model("Note", noteSchema);
-
-module.exports = Note;
+export default Note;

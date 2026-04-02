@@ -5,6 +5,8 @@ import "../styling/StudySpace.css";
 const StudySpacePage = () => {
   const [verses, setVerses] = useState([]);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [nextPageExist, setNextPageExist] = useState(false);
 
   const location = useLocation();
@@ -12,6 +14,7 @@ const StudySpacePage = () => {
   const { surahId, arabicName, englishName } = location.state || {}; // Handle undefined state
 
   useEffect(() => {
+    setLoading(true);
     if (surahId >= 1 && surahId <= 114) {
       fetch(`/quran/surahs/${surahId}?page=${page}`, {
         method: "GET",
@@ -19,24 +22,35 @@ const StudySpacePage = () => {
           "Content-Type": "application/json",
         },
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            if (data.verses && data.verses.length != 0) {
-              setVerses((verse) => [...verse, ...data.verses]);
-            }
-            if (data.pagination && data.pagination.next_page) {
-              setNextPageExist(true);
-            } else if (data.pagination.next_page == null)
-              setNextPageExist(false);
+        .then((res) => {
+          if (res.status !== 200)
+            setError("Failed to load the verses. Please try again.");
+          return res.json();
+        })
+        .then((json_result) => {
+          const data = json_result.data;
+          if (data.verses && data.verses.length > 0) {
+            console.log("Verses retrieved successfully");
+            console.log(data.verses);
+            setVerses((verses) => [...verses, ...data.verses]);
           }
+          if (data.pagination && data.pagination.next_page) {
+            setNextPageExist(true);
+          } else {
+            setNextPageExist(false);
+          }
+        })
+        .finally(() => {
+          setLoading(false);
         });
     }
-  }, [page]);
+  }, [surahId, page]);
   return (
     <div>
       <h1>Surah {arabicName}</h1>
+      {!arabicName && <hr />}
       <div>{englishName}</div>
+      {!verses && loading && <p>Loading...</p>}
       <div>
         {verses.map((verse) => (
           <Verse key={verse.id} verse={verse} />

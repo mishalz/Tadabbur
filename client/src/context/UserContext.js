@@ -14,7 +14,7 @@ export const UserContextProvider = ({ children }) => {
   // Function to check for a token in localStorage and then validate it by sending a request to the backend
   useEffect(() => {
     const storedToken = localStorage.getItem("token"); //getting the token from the local storage
-
+    console.log("stored token:", storedToken);
     if (storedToken) {
       axios
         .get("/auth/validate", {

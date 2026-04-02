@@ -1,7 +1,6 @@
 //define the User model
-const mongoose = require("mongoose");
-const userDBConnection = require("./auth.database");
-
+import mongoose from "mongoose";
+import userDBConnection from "./auth.database.js";
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -10,4 +9,4 @@ const userSchema = new mongoose.Schema({
 
 const User = userDBConnection.model("User", userSchema);
 
-module.exports = User;
+export default User;
