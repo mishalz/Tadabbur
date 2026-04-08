@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
-import "../styling/TitleBar.css";
+// import "../styling/TitleBar.css";
 import { UserContext } from "../context/UserContext";
-import { IoPersonCircle } from "react-icons/io5";
+// import { IoPersonCircle } from "react-icons/io5";
 
 function TitleBar({ loginHandler }) {
   const { user } = useContext(UserContext);

@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { routes } from "../utils/Routes";
-import {
-  FaHome,
-  FaBook,
-  FaLink,
-  FaStickyNote,
-  FaThLarge,
-  FaBars,
-} from "react-icons/fa";
-import { ImCross } from "react-icons/im";
-import "../styling/Navbar.css";
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -24,7 +15,7 @@ const Navbar = () => {
           className={`toggle-btn ${isOpen ? "open" : "collapsed"}`}
           onClick={toggleSidebar}
         >
-          {isOpen ? <ImCross /> : <FaBars />}
+          {/* {isOpen ? <ImCross /> : <FaBars />} */}
         </div>
         <nav className="nav">
           <NavLink
@@ -33,7 +24,7 @@ const Navbar = () => {
             exact
             activeClassName="active"
           >
-            <FaHome className="icon" />
+            {/* <FaHome className="icon" /> */}
             {isOpen && <span>Home</span>}
           </NavLink>
 
@@ -42,7 +33,7 @@ const Navbar = () => {
             to={routes.studySpace}
             activeClassName="active"
           >
-            <FaBook className="icon" />
+            {/* <FaBook className="icon" /> */}
             {isOpen && <span>Study Space</span>}
           </NavLink>
 
@@ -51,7 +42,7 @@ const Navbar = () => {
             to={routes.connections}
             activeClassName="active"
           >
-            <FaLink className="icon" />
+            {/* <FaLink className="icon" /> */}
             {isOpen && <span>Connections</span>}
           </NavLink>
 
@@ -60,7 +51,7 @@ const Navbar = () => {
             to={routes.themes}
             activeClassName="active"
           >
-            <FaThLarge className="icon" />
+            {/* <FaThLarge className="icon" /> */}
             {isOpen && <span>Themes</span>}
           </NavLink>
 
@@ -69,7 +60,7 @@ const Navbar = () => {
             to={routes.notes}
             activeClassName="active"
           >
-            <FaStickyNote className="icon" />
+            {/* <FaStickyNote className="icon" /> */}
             {isOpen && <span>Notes</span>}
           </NavLink>
         </nav>

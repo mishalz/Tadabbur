@@ -1,10 +1,8 @@
-import "./App.css";
 import Navbar from "./components/Navbar";
 import { Route, Routes } from "react-router-dom";
 import Homepage from "./pages/Homepage";
 import StudySpacePage from "./pages/StudySpacePage";
 import ConnectionsPage from "./pages/ConnectionsPage";
-import ThemesPage from "./pages/ThemesPage";
 import NotesPage from "./pages/NotesPage";
 import { routes } from "./utils/Routes";
 import TitleBar from "./components/TitleBar";
@@ -15,6 +13,7 @@ function App() {
   const [openAuthModal, setOpenAuthModal] = useState(false);
   const handleOpen = () => setOpenAuthModal(true);
   const handleClose = () => setOpenAuthModal(false);
+
   return (
     <div className="App">
       <TitleBar loginHandler={handleOpen} />
@@ -26,7 +25,6 @@ function App() {
             <Route path="/" exact element={<Homepage />} />
             <Route path="/studyspace" element={<StudySpacePage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
-            <Route path="/themes" element={<ThemesPage />} />
             <Route path="/notes" element={<NotesPage />} />
           </Routes>
         </div>

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import Modal from "@mui/material/Modal";
-import Box from "@mui/material/Box";
-import "./../styling/LoginModal.css";
+// import Modal from "@mui/material/Modal";
+// import Box from "@mui/material/Box";
 import LoginForm from "./LoginForm";
 import RegistrationForm from "./RegistrationForm";
 
@@ -18,21 +17,22 @@ const style = {
 function LoginModal({ openModal, handleClose }) {
   const [login, setLogin] = useState(true);
   return (
-    <Modal
-      open={openModal}
-      onClose={handleClose}
-      aria-labelledby="modal-modal-title"
-      aria-describedby="modal-modal-description"
-    >
-      <Box sx={style}>
-        <div className="auth-form">
-          {login && (
-            <LoginForm showLogin={setLogin} handleClose={handleClose} />
-          )}
-          {!login && <RegistrationForm showLogin={setLogin} />}
-        </div>
-      </Box>
-    </Modal>
+    <p>loginmodal</p>
+    // <Modal
+    //   open={openModal}
+    //   onClose={handleClose}
+    //   aria-labelledby="modal-modal-title"
+    //   aria-describedby="modal-modal-description"
+    // >
+    //   <Box sx={style}>
+    //     <div className="auth-form">
+    //       {login && (
+    //         <LoginForm showLogin={setLogin} handleClose={handleClose} />
+    //       )}
+    //       {!login && <RegistrationForm showLogin={setLogin} />}
+    //     </div>
+    //   </Box>
+    // </Modal>
   );
 }
 

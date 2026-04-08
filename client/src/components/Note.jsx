@@ -1,5 +1,5 @@
 import React from "react";
-import "../styling/Note.css";
+// import "../styling/Note.css";
 
 function Note({ note }) {
   console.log(note.colour);

@@ -1,8 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
-import "../styling/AuthForm.css";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
-import Spinner from "react-bootstrap/Spinner";
 
 function LoginForm({ showLogin, handleClose }) {
   const [submit, setSubmit] = useState(false);
@@ -87,7 +85,7 @@ function LoginForm({ showLogin, handleClose }) {
           />
         </div>
         <button onClick={handleSubmit}>
-          {isLoading ? <Spinner /> : "Login"}
+          {/* {isLoading ? <Spinner /> : "Login"} */}
         </button>
       </form>
       <p className="error-message">{error}</p>

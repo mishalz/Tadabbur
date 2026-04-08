@@ -1,4 +1,13 @@
 npx create-react-app client
 npm install react-router-dom react-icons
-npm install @mui/material @emotion/react @emotion/styled
-npm install bootstrap react-bootstrap
+
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }

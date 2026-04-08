@@ -1,5 +1,5 @@
 import React from "react";
-import "../styling/SurahItem.css";
+// import "../styling/SurahItem.css";
 import { useNavigate } from "react-router-dom";
 import { routes } from "../utils/Routes";
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Verse from "../components/Verse";
-import "../styling/StudySpace.css";
+// import "../styling/StudySpace.css";
 const StudySpacePage = () => {
   const [verses, setVerses] = useState([]);
   const [page, setPage] = useState(1);
@@ -16,7 +16,7 @@ const StudySpacePage = () => {
   useEffect(() => {
     setLoading(true);
     if (surahId >= 1 && surahId <= 114) {
-      fetch(`/quran/surahs/${surahId}?page=${page}`, {
+      fetch(`/api/quran/surahs/${surahId}?page=${page}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

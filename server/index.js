@@ -17,9 +17,9 @@ const app = express();
 app.use(bodyParser.json());
 
 //forwarding all routes to their specific component
-app.use("/auth", authRoutes);
-app.use("/content", validateToken, contentRoutes);
-app.use("/quran", quranRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/content", validateToken, contentRoutes);
+app.use("/api/quran", quranRoutes);
 
 // Fallback route (Handles 404 errors)
 app.use((_, res, next) => {

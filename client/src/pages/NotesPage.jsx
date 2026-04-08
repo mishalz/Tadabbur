@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { UserContext } from "../context/UserContext";
 import Note from "../components/Note";
-import "../styling/Notes.css";
+// import "../styling/Notes.css";
 
 const NotesPage = () => {
   const [notes, setNotes] = useState([]);

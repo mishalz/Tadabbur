@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
-import "../styling/Verse.css";
-import { FaPenAlt, FaConnectdevelop } from "react-icons/fa";
-import { BiCategoryAlt } from "react-icons/bi";
+// import "../styling/Verse.css";
+// import { FaPenAlt, FaConnectdevelop } from "react-icons/fa";
+// import { BiCategoryAlt } from "react-icons/bi";
 import { UserContext } from "../context/UserContext";
 
 function Verse({ verse }) {
@@ -56,8 +56,8 @@ function Verse({ verse }) {
       <div className="verse-section">
         <div className="verse-data">
           <div className="verse-number">Verse {verse.verse_number}</div>
-          <FaPenAlt className="icon" onClick={displayNotes} />
-          <FaConnectdevelop className="icon" onClick={displayConnections} />
+          {/* <FaPenAlt className="icon" onClick={displayNotes} />
+          <FaConnectdevelop className="icon" onClick={displayConnections} /> */}
           <BiCategoryAlt className="icon" onClick={displayThemes} />
         </div>
         <div className="verse">

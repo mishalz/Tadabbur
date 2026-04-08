@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SurahItem from "./SurahItem";
-import "../styling/SurahList.css";
+// import "../styling/SurahList.css";
+import { LoaderCircle } from "lucide-react";
+import { Spinner } from "./ui/spinner";
 
 function SurahList() {
   const [surahlist, setSurahList] = useState([]);
@@ -12,14 +14,12 @@ function SurahList() {
   useEffect(() => {
     setLoading(true);
     axios
-      .get("/quran/surahs", {
+      .get("/api/quran/surahs", {
         headers: {
           Accept: "application/json",
         },
       })
       .then((res) => {
-       
-        console.log("Surah list response:", res);
         if (res.status === 200) {
           setError(null);
           setSurahList(res.data.chapters);
@@ -33,11 +33,14 @@ function SurahList() {
   }, []);
 
   return (
-    <div className="surah-list-section">
+    <div className="mt-5 w-full">
       <h1>Surahs</h1>
-      <div className="surah-list">
+      <hr />
+      <div className="flex flex-column align-items-center">
         {loading ? (
-          <p>Loading...</p>
+          <div>
+            <Spinner />
+          </div>
         ) : (
           surahlist &&
           surahlist.length != 0 &&
