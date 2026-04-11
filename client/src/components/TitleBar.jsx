@@ -1,16 +1,14 @@
 import React, { useContext } from "react";
-// import "../styling/TitleBar.css";
 import { UserContext } from "../context/UserContext";
-// import { IoPersonCircle } from "react-icons/io5";
 
 function TitleBar({ loginHandler }) {
   const { user } = useContext(UserContext);
 
   return (
-    <div className="title-bar">
-      <div className="title-section">
-        <img src="quran.png" className="logo" />
-        <span className="title">Tadabbur</span>
+    <div className="container mx-auto flex justify-between items-center py-4">
+      <div className="flex items-center gap-2">
+        <img src="quran.png" width={40} height={40} />
+        <span className="font-mono font-medium text-2xl">Tadabbur</span>
       </div>
       {user.isLoggedIn && (
         <div className="profile-info">

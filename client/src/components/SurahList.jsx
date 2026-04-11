@@ -33,13 +33,13 @@ function SurahList() {
   }, []);
 
   return (
-    <div className="mt-5 w-full">
+    <div className="w-full">
       <h1>Surahs</h1>
       <hr />
-      <div className="flex flex-column align-items-center">
+      <div className="flex flex-column items-center gap-5 mt-5">
         {loading ? (
-          <div>
-            <Spinner />
+          <div className="flex items-center justify-center w-full ">
+            <Spinner className="w-8 h-8" />
           </div>
         ) : (
           surahlist &&
@@ -55,7 +55,7 @@ function SurahList() {
         )}
 
         {error && surahlist.length == 0 && (
-          <div>
+          <div className="flex flex-column items-center mt-5">
             <p>Could not load the surahs. Please try again.</p>
           </div>
         )}

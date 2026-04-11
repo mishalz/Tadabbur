@@ -15,11 +15,11 @@ function App() {
   const handleClose = () => setOpenAuthModal(false);
 
   return (
-    <div className="App">
+    <div className=" h-screen text-foreground">
       <TitleBar loginHandler={handleOpen} />
-      <div className="page-contents">
-        <Navbar></Navbar>
-        <div className="main-content">
+      <div className="container mx-auto flex mt-3">
+        <Navbar className="basis-1/6" />
+        <div className="basis-5/6">
           <LoginModal openModal={openAuthModal} handleClose={handleClose} />
           <Routes>
             <Route path="/" exact element={<Homepage />} />

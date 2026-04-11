@@ -17,7 +17,7 @@ const style = {
 function LoginModal({ openModal, handleClose }) {
   const [login, setLogin] = useState(true);
   return (
-    <p>loginmodal</p>
+    <></>
     // <Modal
     //   open={openModal}
     //   onClose={handleClose}
