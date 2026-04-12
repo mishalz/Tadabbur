@@ -96,7 +96,6 @@ const getAllVerseConnections = async (req, res) => {
 
     res.status(result.status || 200).send(result);
   } catch (error) {
-    console.log(error);
     //incase of an error
     return res.status(500).send({
       success: false,

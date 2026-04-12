@@ -1,6 +1,8 @@
 import Cache from "../../utils/Cache.js";
-import { getAccessToken, getJsonData } from "../content/content.config.js";
-import { client } from "../content/contentClient.js";
+import {
+  getAccessToken,
+  getJsonData,
+} from "../quran-retrieval/quran.service.js";
 
 export const getAllSurahs = async (req, res) => {
   try {
@@ -13,12 +15,9 @@ export const getAllSurahs = async (req, res) => {
       return res.status(200).send(data); //if the data is found in the cache, return it with a success response
     }
     const token = await getAccessToken(); //get the access token for the Quran Foundation API
-    console.log("Access token retrieved successfully");
-    console.log(token);
 
     const surahList = await getJsonData("/content/api/v4/chapters"); //get the surah list from the Quran Foundation API
-    console.log("Surah list retrieved successfully");
-    console.log(surahList);
+    Cache.updateCache(cacheKey, surahList); //update the cache with the retrieved surah list
 
     // //method for fuzzy search
     // const query = req.query ? (req.query.search ? req.query.search : null) : null;
@@ -27,12 +26,10 @@ export const getAllSurahs = async (req, res) => {
 
     //sending an error response if success is false
     if (!surahList) {
-      res.status(500).send({
-        message: "Failed to retrieve surah list.",
-      });
+      throw new Error();
     } else res.status(200).send(surahList); //otherwise returning the result with a success
   } catch (err) {
-    console.log(err);
+    // console.log(err);
     res.status(500).send({
       message: "An error occurred while retrieving the surah list.",
     });
@@ -41,23 +38,31 @@ export const getAllSurahs = async (req, res) => {
 
 //to get all verses of a surah
 export const getSurahData = async (req, res) => {
-  const surahId = req.params.id; //retrieve the surah id from the URL params
-  const page = req.query.page; //for pagination
+  try {
+    const surahId = req.params.id; //retrieve the surah id from the URL params
+    const page = req.query.page; //for pagination
+    const script = req.query.script; //for to include the arabic text
+    const translation_id = req.query.translation_id; //to include the translation of the verse in the response
 
-  // const queryString = quranService.getURLQueryString(
-  //   quranService.parametersConfig,
-  // ); //to get the parameters in the string form to be attached to the URL
+    const url = `/content/api/v4/verses/by_chapter/${surahId}?page=${page}&fields=${script}&translations=${translation_id}`; //the url to get verses for a surah with pagination
 
-  const url = `/content/api/v4/verses/by_chapter/${surahId}?page=${page}`; //the url to get verses for a surah with pagination
+    const cacheKey = `surah${surahId}-page${page}`; //cache key to first search in the cache
+    //check cache for the surah list first
+    const data = Cache.checkCache(cacheKey);
+    if (data) {
+      return res.status(200).send(data); //if the data is found in the cache, return it with a success response
+    }
+    let surahData = await getJsonData(url); //retrieving the verses
+    Cache.updateCache(cacheKey, surahData); //update the cache with the retrieved surah list
 
-  const cacheKey = `surah${surahId}-page${page}`; //cache key to first search in the cache
-
-  let surahData = await getJsonData(url); //retrieving the verses
-  console.log("Surah data retrieved successfully");
-  console.log(surahData);
-  if ((surahData && surahData.verses.length == 0) || !surahData) {
-    return res.status(500).send({ message: "Failed to retrieve surah data." }); //sending an error response if success is false
-  } else res.status(200).send({ data: surahData }); //otherwise returning the result with a success
+    if ((surahData && !surahData.verses) || !surahData) {
+      throw new Error();
+    } else res.status(200).send(surahData); //otherwise returning the result with a success
+  } catch (err) {
+    res.status(500).send({
+      message: "An error occurred while retrieving the verses.",
+    });
+  }
 };
 
 //to retrieve a random verse from the quran

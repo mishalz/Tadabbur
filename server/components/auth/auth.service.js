@@ -3,9 +3,40 @@ import Joi from "joi";
 import jwt from "jsonwebtoken";
 import User from "./user.model.js";
 import { AuthenticationError } from "../../utils/Errors.js";
+import { getQfOAuthConfig } from "../../qfAuthConfig.js";
 
 //the secret key is used to sign and validate the jwt tokens
 const secretKey = process.env.JWT_SECRET_KEY;
+
+export async function refreshAccessToken({ refreshToken }) {
+  const { authBaseUrl, clientId, clientSecret } = getQfOAuthConfig();
+
+  const params = new URLSearchParams();
+  params.append("grant_type", "refresh_token");
+  params.append("refresh_token", refreshToken);
+
+  // Confidential server apps should use HTTP Basic and keep refresh on the server.
+  // Public PKCE apps should only omit client_secret if Quran Foundation
+  // explicitly confirmed that the client is public.
+  const isConfidential = Boolean(clientSecret);
+
+  if (!isConfidential) {
+    params.append("client_id", clientId);
+  }
+
+  const res = await axios.post(
+    `${authBaseUrl}/oauth2/token`,
+    params.toString(),
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      ...(isConfidential
+        ? { auth: { username: clientId, password: clientSecret } }
+        : {}),
+    }
+  );
+
+  return res.data;
+}
 
 //Joi schemas for validating the registration and login inputs
 export const registerSchema = Joi.object({

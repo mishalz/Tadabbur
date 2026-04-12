@@ -1,3 +1,5 @@
+import axios from "axios";
+import jwt from "jsonwebtoken";
 import {
   validateToken,
   validateInputData,
@@ -13,6 +15,46 @@ import {
   AuthenticationError,
   InvalidInputError,
 } from "../../utils/Errors.js";
+import { getQfOAuthConfig } from "../../qfAuthConfig.js";
+
+//from Quran.com API DOCS to exchange the authorization code for access and refresh tokens
+export const exchangeQfToken = async (req, res) => {
+  const { code, codeVerifier, redirectUri } = req.body;
+  const { authBaseUrl, clientId, clientSecret } = getQfOAuthConfig();
+
+  try {
+    const params = new URLSearchParams();
+    params.append("grant_type", "authorization_code");
+    params.append("code", code);
+    params.append("redirect_uri", redirectUri);
+    params.append("code_verifier", codeVerifier);
+
+    const tokenResponse = await axios.post(
+      `${authBaseUrl}/oauth2/token`,
+      params.toString(),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        auth: {
+          username: clientId,
+          password: clientSecret,
+        },
+      },
+    );
+
+    const token = tokenResponse.data;
+    const user = token.id_token ? jwt.decode(token.id_token) : null;
+
+    res.json({
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token,
+      idToken: token.id_token,
+      expiresIn: token.expires_in,
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to exchange authorization code" });
+  }
+};
 
 //To add a new user to the system
 export const registerUser = async (req, res) => {

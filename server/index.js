@@ -16,6 +16,7 @@ const app = express();
 //essential to retrieve the json data in all requests' body.
 app.use(bodyParser.json());
 
+
 //forwarding all routes to their specific component
 app.use("/api/auth", authRoutes);
 app.use("/api/content", validateToken, contentRoutes);

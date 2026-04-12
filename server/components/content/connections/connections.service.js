@@ -1,9 +1,7 @@
 import Joi from "joi";
 import { getDriver } from "./connections.db.js";
-import quranService from "../../quran-retrieval/quran.service.js";
+import { getVerseData } from "../../quran-retrieval/quran.service.js";
 import Cache from "../../../utils/Cache.js";
-
-const driver = getDriver();
 
 //schema for a connections object
 const connectionSchema = Joi.object({
@@ -26,8 +24,8 @@ export const validateInput = (data) => {
 
 //to validate that the verses exist and get data required for creating a connection
 export const validateAndGetVersePair = async (fromVerse, toVerse) => {
-  const fromVerseData = await quranService.getVerseData(fromVerse);
-  const toVerseData = await quranService.getVerseData(toVerse);
+  const fromVerseData = await getVerseData(fromVerse);
+  const toVerseData = await getVerseData(toVerse);
 
   //if both the verses exist
   if (fromVerseData.success && toVerseData.success) {
@@ -51,6 +49,7 @@ export const checkConnectionExists = async (
   toVerseKey,
   userId,
 ) => {
+  const driver = getDriver();
   let session = driver.session({ database: "tadabbur" });
   try {
     //first check cache if the connection is stored there
@@ -81,11 +80,13 @@ export const checkConnectionExists = async (
     throw err;
   } finally {
     await session.close();
+    await driver.close();
   }
 };
 
 //save the connection to the database
 export const saveConnection = async (userId, fromVerse, toVerse, note = "") => {
+  const driver = getDriver();
   let session = driver.session({ database: "tadabbur" });
   try {
     //writing to the database
@@ -108,11 +109,13 @@ export const saveConnection = async (userId, fromVerse, toVerse, note = "") => {
     throw err;
   } finally {
     await session.close();
+    await driver.close();
   }
 };
 
 //function to retrieve all connections either from the cache or from the database
 export const getAllConnections = async (userId) => {
+  const driver = getDriver();
   let session = driver.session({ database: "tadabbur" });
   try {
     //first check cache if the connection is stored there
@@ -150,15 +153,17 @@ export const getAllConnections = async (userId) => {
     throw err;
   } finally {
     await session.close();
+    await driver.close();
   }
 };
 
 //get all connections for one specific verse
 export const getVerseConnections = async (userId, verseKey) => {
+  const driver = getDriver();
   let session = driver.session({ database: "tadabbur" });
   try {
     //check if the passed verse key is valid
-    const verse = await await quranService.getVerseData(verseKey);
+    const verse = await await getVerseData(verseKey);
     if (!verse.success)
       return {
         success: false,
@@ -204,6 +209,7 @@ export const getVerseConnections = async (userId, verseKey) => {
     throw err;
   } finally {
     await session.close();
+    await driver.close();
   }
 };
 
