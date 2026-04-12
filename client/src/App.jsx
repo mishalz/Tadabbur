@@ -3,8 +3,6 @@ import { Route, Routes } from "react-router-dom";
 import Homepage from "./pages/Homepage";
 import StudySpacePage from "./pages/StudySpacePage";
 import ConnectionsPage from "./pages/ConnectionsPage";
-import NotesPage from "./pages/NotesPage";
-import { routes } from "./utils/Routes";
 import TitleBar from "./components/TitleBar";
 import { useState } from "react";
 import LoginModal from "./components/LoginModal";
@@ -25,7 +23,6 @@ function App() {
             <Route path="/" exact element={<Homepage />} />
             <Route path="/studyspace" element={<StudySpacePage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
-            <Route path="/notes" element={<NotesPage />} />
           </Routes>
         </div>
       </div>

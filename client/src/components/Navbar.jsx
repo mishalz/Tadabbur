@@ -11,7 +11,8 @@ const Navbar = ({ className }) => {
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const activeIconClass = "scale-95 transition-all duration-300 ease-in";
-  const iconClass = "w-5 h-5 text-foreground-muted transition-all duration-200 ease-in";
+  const iconClass =
+    "w-5 h-5 text-foreground-muted transition-all duration-200 ease-in";
   const navbarItems = [
     {
       route: routes.home,
@@ -35,26 +36,27 @@ const Navbar = ({ className }) => {
 
   return (
     <>
-      <div className={`${className}  `}>
+      <div className={`${className} pt-3 relative`}>
         <div
-          className={`toggle-btn ${isOpen ? "open" : "collapsed"}`}
+          className={`toggle-btn ${isOpen ? "open" : "collapsed"} `}
           onClick={toggleSidebar}
         >
           {/* {isOpen ? <ImCross /> : <FaBars />} */}
         </div>
-        <nav className="flex flex-col gap-2">
-          {navbarItems.map((item) => (
-            <NavbarItem
-              key={item.name}
-              route={item.route}
-              Icon={item.Icon}
-              activeIcon={item.activeIcon}
-              name={item.name}
-              isOpen={isOpen}
-            />
-          ))}
+        <div className="sticky">
+          <nav className="flex flex-col gap-3  ">
+            {navbarItems.map((item) => (
+              <NavbarItem
+                key={item.name}
+                route={item.route}
+                Icon={item.Icon}
+                activeIcon={item.activeIcon}
+                name={item.name}
+                isOpen={isOpen}
+              />
+            ))}
 
-          {/* 
+            {/* 
           <NavLink
             className="nav-item"
             to={routes.notes}
@@ -64,7 +66,8 @@ const Navbar = ({ className }) => {
             {isOpen && <span>Notes</span>}
           </NavLink> 
           */}
-        </nav>
+          </nav>
+        </div>
       </div>
     </>
   );

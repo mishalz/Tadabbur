@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Verse from "../components/Verse";
-// import "../styling/StudySpace.css";
+import { Spinner } from "@/components/ui/spinner";
+
 const StudySpacePage = () => {
   const [verses, setVerses] = useState([]);
   const [page, setPage] = useState(1);
@@ -11,26 +12,36 @@ const StudySpacePage = () => {
 
   const location = useLocation();
   // Retrieve the state data from the location object
-  const { surahId, arabicName, englishName } = location.state || {}; // Handle undefined state
+  const storedSurah = JSON.parse(localStorage.getItem("last-surah")); //to retrieve the last surah that was opened in case the user refreshes the page or comes back to it after leaving
+  if (location.state) {
+    localStorage.setItem("last-surah", JSON.stringify(location.state));
+  }
+  const { surahId, arabicName, englishName } =
+    location.state || storedSurah || {};
+
+  const script = "text_uthmani"; //to include the arabic text in the response
+  const translation_id = 85; //to include the translation of the verse in the response
 
   useEffect(() => {
     setLoading(true);
     if (surahId >= 1 && surahId <= 114) {
-      fetch(`/api/quran/surahs/${surahId}?page=${page}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      fetch(
+        `/api/quran/surahs/${surahId}?page=${page}&script=${script}&translation_id=${translation_id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      })
+      )
         .then((res) => {
           if (res.status !== 200)
             setError("Failed to load the verses. Please try again.");
           return res.json();
         })
         .then((json_result) => {
-          const data = json_result.data;
+          const data = json_result;
           if (data.verses && data.verses.length > 0) {
-            console.log("Verses retrieved successfully");
             console.log(data.verses);
             setVerses((verses) => [...verses, ...data.verses]);
           }
@@ -47,23 +58,27 @@ const StudySpacePage = () => {
   }, [surahId, page]);
   return (
     <div>
-      <h1>Surah {arabicName}</h1>
+      <h1 className="mb-0">Surah {arabicName}</h1>
       {!arabicName && <hr />}
-      <div>{englishName}</div>
-      {!verses && loading && <p>Loading...</p>}
+      <div className="text-xl text-foreground-muted mb-3">{englishName}</div>
+      {loading && (
+        <div className="flex items-center justify-center w-full ">
+          <Spinner className="w-8 h-8" />
+        </div>
+      )}
       <div>
         {verses.map((verse) => (
           <Verse key={verse.id} verse={verse} />
         ))}
         {nextPageExist && (
-          <button
-            id="load-button"
+          <div className="w-full flex items-center justify-center"><button
+            className="rounded-full bg-primary/20 text-primary border border-primary/10 px-5 py-2 mt-5 mb-10 hover:bg-primary/30 transition-colors duration-200 ease-in-out"
             onClick={() => {
               setPage((x) => x + 1);
             }}
           >
             Load More
-          </button>
+          </button></div>
         )}
       </div>
     </div>
