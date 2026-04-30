@@ -9,10 +9,7 @@ let expiresAt = 0;
 let inflightTokenPromise = null;
 
 async function fetchToken() {
-  const { env, authBaseUrl, clientId, clientSecret } = getQfConfig();
-  console.log(`Fetching new token for ${env} environment`);
-  console.log("Client ID:", clientId ? "****" : "Not set");
-  console.log("Client Secret:", clientSecret ? "****" : "Not set");
+  const { authBaseUrl, clientId, clientSecret } = getQfConfig();
 
   const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString(
     "base64",
@@ -29,7 +26,7 @@ async function fetchToken() {
       scope: "content",
     }),
   });
-  console.log("Token response status:", response);
+
   if (!response.ok) {
     throw new Error(`Token request failed: ${response.status}`);
   }
@@ -54,7 +51,7 @@ export async function getAccessToken() {
   return inflightTokenPromise;
 }
 
-function clearToken() {
+export function clearToken() {
   cachedToken = null;
   expiresAt = 0;
 }
@@ -89,29 +86,3 @@ export async function getJsonData(path, params = {}) {
   return response.json();
 }
 export const getVerseData = async (verseKey) => {};
-
-// const filterForSearch = (searchQuery, surahList) => {
-//   try {
-//     const fuseOptions = {
-//       keys: ["name_simple", "name_complex", "translated_name.name"], //the keys to search in
-//       threshold: 0.6, //a value between 0 and 1, the higher the threshold the less it performs exact matching
-//     };
-
-//     // console.log(surahList);
-//     // const list = JSON.parse(surahList); //get a JS object
-
-//     //perform the search
-//     const fuse = new Fuse(surahList.chapters, fuseOptions);
-//     const searchResults = fuse.search(searchQuery);
-
-//     return { success: true, status: 200, results: searchResults };
-//   } catch (error) {
-//     console.log(error);
-//     const response = {
-//       success: false,
-//       status: 500,
-//       message: "Could not get the search results.", //error response for search
-//     };
-//     return response;
-//   }
-// };

@@ -42,7 +42,6 @@ const StudySpacePage = () => {
         .then((json_result) => {
           const data = json_result;
           if (data.verses && data.verses.length > 0) {
-            console.log(data.verses);
             setVerses((verses) => [...verses, ...data.verses]);
           }
           if (data.pagination && data.pagination.next_page) {
@@ -71,14 +70,16 @@ const StudySpacePage = () => {
           <Verse key={verse.id} verse={verse} />
         ))}
         {nextPageExist && (
-          <div className="w-full flex items-center justify-center"><button
-            className="rounded-full bg-primary/20 text-primary border border-primary/10 px-5 py-2 mt-5 mb-10 hover:bg-primary/30 transition-colors duration-200 ease-in-out"
-            onClick={() => {
-              setPage((x) => x + 1);
-            }}
-          >
-            Load More
-          </button></div>
+          <div className="w-full flex items-center justify-center">
+            <button
+              className="rounded-full bg-primary/20 text-primary border border-primary/10 px-5 py-2 mt-5 mb-10 hover:bg-primary/30 transition-colors duration-200 ease-in-out"
+              onClick={() => {
+                setPage((x) => x + 1);
+              }}
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
     </div>

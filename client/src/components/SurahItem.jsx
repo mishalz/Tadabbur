@@ -1,12 +1,11 @@
 import React from "react";
 // import "../styling/SurahItem.css";
 import { useNavigate } from "react-router-dom";
-import { routes } from "../utils/Routes";
 
 function SurahItem({ id, arabicName, englishName }) {
   const navigate = useNavigate();
   const openSurah = () => {
-    navigate(routes.studySpace, {
+    navigate("/studyspace", {
       state: { surahId: id, arabicName, englishName },
     });
   };

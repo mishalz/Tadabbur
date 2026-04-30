@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 
 import { routes } from "../utils/Routes";
 import { House, NotebookPen, Link } from "lucide-react";
 import NavbarItem from "./NavbarItem";
+import { UserContext } from "@/context/UserContext";
 
 const Navbar = ({ className }) => {
+  const { user } = useContext(UserContext);
   const [isOpen, setIsOpen] = useState(true);
 
   // Toggle the sidebar open/close state
@@ -26,13 +28,15 @@ const Navbar = ({ className }) => {
       name: "Study Space",
       activeIcon: <NotebookPen className={activeIconClass} />,
     },
-    {
+  ];
+  if (user?.isLoggedIn) {
+    navbarItems.push({
       route: routes.connections,
       Icon: <Link className={iconClass} />,
       name: "Connections",
       activeIcon: <Link className={activeIconClass} />,
-    },
-  ];
+    });
+  }
 
   return (
     <>
@@ -55,17 +59,6 @@ const Navbar = ({ className }) => {
                 isOpen={isOpen}
               />
             ))}
-
-            {/* 
-          <NavLink
-            className="nav-item"
-            to={routes.notes}
-            activeClassName="active"
-          >
-          <FaStickyNote className="icon" /> 
-            {isOpen && <span>Notes</span>}
-          </NavLink> 
-          */}
           </nav>
         </div>
       </div>

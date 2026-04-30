@@ -1,134 +1,12 @@
 import bcrypt from "bcrypt";
-import Joi from "joi";
 import jwt from "jsonwebtoken";
-import User from "./user.model.js";
-import { AuthenticationError } from "../../utils/Errors.js";
-import { getQfOAuthConfig } from "../../qfAuthConfig.js";
+
+import { getQfConfig } from "../../qfConfig.js";
+import crypto from "crypto";
+import { generatePkcePair } from "../../pkceConfig.js";
 
 //the secret key is used to sign and validate the jwt tokens
 const secretKey = process.env.JWT_SECRET_KEY;
-
-export async function refreshAccessToken({ refreshToken }) {
-  const { authBaseUrl, clientId, clientSecret } = getQfOAuthConfig();
-
-  const params = new URLSearchParams();
-  params.append("grant_type", "refresh_token");
-  params.append("refresh_token", refreshToken);
-
-  // Confidential server apps should use HTTP Basic and keep refresh on the server.
-  // Public PKCE apps should only omit client_secret if Quran Foundation
-  // explicitly confirmed that the client is public.
-  const isConfidential = Boolean(clientSecret);
-
-  if (!isConfidential) {
-    params.append("client_id", clientId);
-  }
-
-  const res = await axios.post(
-    `${authBaseUrl}/oauth2/token`,
-    params.toString(),
-    {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      ...(isConfidential
-        ? { auth: { username: clientId, password: clientSecret } }
-        : {}),
-    }
-  );
-
-  return res.data;
-}
-
-//Joi schemas for validating the registration and login inputs
-export const registerSchema = Joi.object({
-  username: Joi.string().alphanum().min(2).max(15).required(),
-  password: Joi.string().min(2).max(15).required(),
-  email: Joi.string().email().required(),
-});
-export const loginSchema = Joi.object({
-  password: Joi.string().min(2).max(15).required(),
-  email: Joi.string().email().required(),
-});
-
-export const validateUser = (token) => {
-  //verify the token validity using jwt
-  return jwt.verify(token, secretKey, (err, decoded) => {
-    if (err) throw new AuthenticationError("Token is invalid."); //throw error if token is invalid
-    return { success: true, user: decoded };
-  });
-};
-
-//To check if a token sent in the header of the request is still valid.
-export const validateToken = (req, res, next) => {
-  try {
-    //get the token from the header
-    const authHeader = req.headers["authorization"];
-    const token = authHeader ? authHeader.split(" ")[1] : null;
-    //throw an error if the token doesnot exist
-    if (!token) {
-      throw new AuthenticationError("Token is missing.");
-    }
-
-    //verify the token validity using jwt
-    jwt.verify(token, secretKey, (err, decoded) => {
-      if (err) throw new AuthenticationError("Invalid token."); //throw error if token is invalid
-      req.user = decoded;
-      console.log("decoded:");
-      console.log(decoded);
-      next();
-    });
-  } catch (error) {
-    console.log(error);
-    //standard error response for any internal server error
-    const response = {
-      success: false,
-      status: 500,
-      message: "Validation Unsuccessful!",
-    };
-
-    //for Authentication errors
-    if (error instanceof AuthenticationError) {
-      response.message = error.message;
-      response.status = 401;
-    }
-
-    res.status(response.status).send(response);
-  }
-};
-
-//function to apply specific validation to the user entered data
-export const validateInputData = (type, data) => {
-  let schema = loginSchema; //by default login schema is chosen
-
-  if (type == "register") schema = registerSchema; //if however the type is register, then the schema is switched
-
-  const { error, value } = schema.validate(data); //if the schema is valid, the error will be undefined, otherwise the error will have the Joi ValidationError object.
-
-  if (error) return { success: false, message: error.details[0].message };
-  //send back an appropriate error object so it could be dealt in the parent function
-  else if (value) return { success: true, data: value }; //if there is no error, return the validated data
-};
-
-//To encrypt the user entered password before storing it in the user database to ensure security of user data.
-export const encryptPassword = async (plainPassword) => {
-  const salt = 10; //the salt determines the security of the hash.
-
-  //encrypt the password and send it back
-  const encryptedPassword = await bcrypt.hash(plainPassword, salt);
-  return encryptedPassword;
-};
-
-//Send the registered data to the user database.
-export const sendToDatabase = async (data) => {
-  const registeredUser = await User.create(data); //save the data to the database using the User model
-  return registeredUser;
-};
-
-//To check if a user with the email exists.
-export const getUserByEmail = async (email) => {
-  const existingUser = await User.findOne({ email: email }); //query the database to retrieve a user by the email if it exists
-  if (!existingUser) return { exists: false }; //if there is no user found
-  return { exists: true, user: existingUser };
-};
 
 //To check if the user entered password matches the encrypted password stored in the database.
 export const matchPassword = async (plainPassword, encryptedPassword) => {
@@ -151,3 +29,156 @@ export const generateToken = (user) => {
   const token = jwt.sign(payload, secretKey, options);
   return token;
 };
+
+function randomString(bytes = 16) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+/**
+ * Generate PKCE code_verifier / code_challenge pair
+ * @returns {{ codeVerifier: string, codeChallenge: string, codeChallengeMethod: "S256" }}
+ */
+export function generatePkcePairLocal() {
+  const codeVerifier = crypto.randomBytes(32).toString("hex");
+  const hash = crypto.createHash("sha256").update(codeVerifier).digest();
+  const codeChallenge = Buffer.from(hash)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+
+  return {
+    codeVerifier,
+    codeChallenge,
+    codeChallengeMethod: "S256",
+  };
+}
+
+/**
+ * Generate cryptographically random OAuth2 state value (CSRF protection)
+ * @param {number} bytes - Number of random bytes (default 32)
+ * @returns {string}
+ */
+export function generateState(bytes = 32) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+/**
+ * Generate cryptographically random OIDC nonce value
+ * @param {number} bytes - Number of random bytes (default 32)
+ * @returns {string}
+ */
+export function generateNonce(bytes = 32) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+/**
+ * Build the Quran Foundation OAuth2 Authorization URL with PKCE
+ * Store state, nonce, and codeVerifier in a server session BEFORE redirecting
+ * @param {Object} params
+ * @param {string} params.redirectUri - Must match registered URI exactly
+ * @param {string} params.scope - Space-separated list of scopes
+ * @returns {{ url: string, state: string, nonce: string, codeVerifier: string }}
+ */
+export function buildAuthorizationUrl({
+  redirectUri,
+  scope = "openid offline_access user",
+}) {
+  const { authBaseUrl, clientId } = getQfConfig();
+  const { codeVerifier, codeChallenge, codeChallengeMethod } = generatePkcePairLocal();
+
+  const state = generateState();
+  const nonce = generateNonce();
+
+  const params = new URLSearchParams();
+  params.set("response_type", "code");
+  params.set("client_id", clientId);
+  params.set("redirect_uri", redirectUri);
+  params.set("scope", scope);
+  params.set("state", state);
+  params.set("nonce", nonce);
+  params.set("code_challenge", codeChallenge);
+  params.set("code_challenge_method", codeChallengeMethod);
+
+  const url = `${authBaseUrl}/oauth2/auth?${params.toString()}`;
+
+  return {
+    url,
+    state,
+    nonce,
+    codeVerifier,
+  };
+}
+
+/**
+ * Validate the state parameter from the OAuth2 callback (CSRF protection)
+ * @param {string} returnedState - State returned from OAuth2 callback
+ * @param {string} storedState - State stored in server session before redirect
+ * @returns {boolean}
+ */
+export function validateState(returnedState, storedState) {
+  if (!returnedState || !storedState) {
+    return false;
+  }
+  return returnedState === storedState;
+}
+
+/**
+ * Validate the nonce claim in the ID token (OIDC nonce validation)
+ * @param {string} idToken - JWT ID token from token exchange
+ * @param {string} storedNonce - Nonce stored in server session before redirect
+ * @returns {boolean}
+ */
+export function validateNonce(idToken, storedNonce) {
+  if (!idToken || !storedNonce) {
+    return false;
+  }
+
+  try {
+    const decoded = jwt.decode(idToken);
+    return decoded?.nonce === storedNonce;
+  } catch (error) {
+    console.error("Error decoding ID token for nonce validation:", error);
+    return false;
+  }
+}
+
+/**
+ * Extract user claims from the ID token
+ * @param {string} idToken - JWT ID token
+ * @returns {object} Decoded token claims (sub, email, name, etc.)
+ */
+export function extractUserFromIdToken(idToken) {
+  if (!idToken) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.decode(idToken);
+    return decoded;
+  } catch (error) {
+    console.error("Error decoding ID token:", error);
+    return null;
+  }
+}
+
+/**
+ * Verify issued scopes match requested scopes
+ * @param {string} issuedScopes - Space-separated scopes from token response
+ * @param {string} requestedScopes - Space-separated scopes requested in auth URL
+ * @returns {object} - { all: boolean, missing: string[] }
+ */
+export function verifyScopesGranted(issuedScopes, requestedScopes) {
+  if (!issuedScopes) {
+    return { all: false, missing: requestedScopes.split(" ") };
+  }
+
+  const issued = new Set(issuedScopes.split(" "));
+  const requested = requestedScopes.split(" ");
+  const missing = requested.filter((scope) => !issued.has(scope));
+
+  return {
+    all: missing.length === 0,
+    missing,
+  };
+}

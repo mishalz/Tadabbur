@@ -1,5 +1,6 @@
 import Cache from "../../utils/Cache.js";
 import {
+  clearToken,
   getAccessToken,
   getJsonData,
 } from "../quran-retrieval/quran.service.js";
@@ -14,6 +15,7 @@ export const getAllSurahs = async (req, res) => {
     if (data) {
       return res.status(200).send(data); //if the data is found in the cache, return it with a success response
     }
+    clearToken();
     const token = await getAccessToken(); //get the access token for the Quran Foundation API
 
     const surahList = await getJsonData("/content/api/v4/chapters"); //get the surah list from the Quran Foundation API
@@ -29,7 +31,7 @@ export const getAllSurahs = async (req, res) => {
       throw new Error();
     } else res.status(200).send(surahList); //otherwise returning the result with a success
   } catch (err) {
-    // console.log(err);
+    console.log(err);
     res.status(500).send({
       message: "An error occurred while retrieving the surah list.",
     });
