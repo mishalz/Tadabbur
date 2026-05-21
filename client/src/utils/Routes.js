@@ -4,4 +4,5 @@ export const routes = {
   connections: "/connections",
   themes: "/themes",
   notes: "/notes",
+  bookmarks: "/bookmarks",
 };

@@ -1,8 +1,7 @@
-import axios from "axios";
-import Fuse from "fuse.js";
 import "dotenv/config";
 
 import { getQfConfig } from "../../qfConfig.js";
+import { ResourceNotFoundError } from "../../utils/Errors.js";
 
 let cachedToken = null;
 let expiresAt = 0;
@@ -59,7 +58,6 @@ export function clearToken() {
 export async function getJsonData(path, params = {}) {
   const { apiBaseUrl, clientId } = getQfConfig();
   let token = await getAccessToken();
-  console.log(clientId);
   let response = await fetch(`${apiBaseUrl}${path}`, {
     headers: {
       "x-auth-token": token,
@@ -71,18 +69,26 @@ export async function getJsonData(path, params = {}) {
   if (response.status === 401) {
     clearToken();
     token = await getAccessToken();
+    clientId = getQfConfig().clientId; // Refresh clientId in case config was reloaded
     response = await fetch(`${apiBaseUrl}${path}`, {
       headers: {
         "x-auth-token": token,
-        "x-client-id": process.env.QF_CLIENT_ID,
+        "x-client-id": clientId,
       },
     });
   }
-
   if (!response.ok) {
     throw new Error(`Content API request failed: ${response.status}`);
   }
 
-  return response.json();
+  return { success: true, data: await response.json() };
 }
-export const getVerseData = async (verseKey) => {};
+export const getVerseData = async (verseKey) => {
+  const url = `/content/api/v4/verses/by_key/${verseKey}?fields=text_uthmani&translations=85`;
+  const { data: verseData } = await getJsonData(url); //getting the verse data
+  //if the verse key is invalide and the verse data is not found, return a response with success false
+  if (!verseData.success && !verseData.verse) {
+    throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
+  }
+  return { success: true, verse: verseData.verse };
+};

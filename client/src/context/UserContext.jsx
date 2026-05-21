@@ -51,10 +51,10 @@ export const UserContextProvider = ({ children }) => {
 
             if (response.data.user) {
               const userData = response.data.user;
-              console.log("Fetched user from backend:", userData);
               setUser({
                 isLoggedIn: true,
-                fullname: userData.first_name + " " + userData.last_name || "User",
+                fullname:
+                  userData.first_name + " " + userData.last_name || "User",
                 sub: userData.sub,
                 email: userData.email,
                 name: userData.name,

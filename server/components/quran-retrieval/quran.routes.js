@@ -3,7 +3,6 @@ const router = express.Router();
 import {
   getAllSurahs,
   getSurahData,
-  getRandomVerse,
   getVerseDataRouteHandler,
 } from "./quran.controller.js";
 

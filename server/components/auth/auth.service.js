@@ -1,38 +1,7 @@
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import { getQfConfig } from "../../qfConfig.js";
 import crypto from "crypto";
-import { generatePkcePair } from "../../pkceConfig.js";
-
-//the secret key is used to sign and validate the jwt tokens
-const secretKey = process.env.JWT_SECRET_KEY;
-
-//To check if the user entered password matches the encrypted password stored in the database.
-export const matchPassword = async (plainPassword, encryptedPassword) => {
-  const result = await bcrypt.compare(plainPassword, encryptedPassword);
-  return result;
-};
-
-//To generate a token if the user entered data in login process clears all checks.
-export const generateToken = (user) => {
-  //defining the information that will be stored in the token
-  const payload = {
-    id: user._id,
-    username: user.username,
-  };
-
-  //to define the time that the token will expire in.
-  const options = { expiresIn: "7d" };
-
-  //generate and return the token
-  const token = jwt.sign(payload, secretKey, options);
-  return token;
-};
-
-function randomString(bytes = 16) {
-  return crypto.randomBytes(bytes).toString("hex");
-}
 
 /**
  * Generate PKCE code_verifier / code_challenge pair
@@ -85,7 +54,8 @@ export function buildAuthorizationUrl({
   scope = "openid offline_access user",
 }) {
   const { authBaseUrl, clientId } = getQfConfig();
-  const { codeVerifier, codeChallenge, codeChallengeMethod } = generatePkcePairLocal();
+  const { codeVerifier, codeChallenge, codeChallengeMethod } =
+    generatePkcePairLocal();
 
   const state = generateState();
   const nonce = generateNonce();

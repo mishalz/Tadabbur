@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 
 import { routes } from "../utils/Routes";
-import { House, NotebookPen, Link } from "lucide-react";
+import { House, NotebookPen } from "lucide-react";
 import NavbarItem from "./NavbarItem";
 import { UserContext } from "@/context/UserContext";
 
@@ -29,12 +29,13 @@ const Navbar = ({ className }) => {
       activeIcon: <NotebookPen className={activeIconClass} />,
     },
   ];
+
   if (user?.isLoggedIn) {
     navbarItems.push({
-      route: routes.connections,
-      Icon: <Link className={iconClass} />,
-      name: "Connections",
-      activeIcon: <Link className={activeIconClass} />,
+      route: routes.bookmarks,
+      Icon: <NotebookPen className={iconClass} />,
+      name: "Bookmarks",
+      activeIcon: <NotebookPen className={activeIconClass} />,
     });
   }
 

@@ -6,7 +6,6 @@ import { Spinner } from "./ui/spinner";
 function Login() {
   const { user, setUser, setTokens } = useContext(UserContext);
   const [loading, setLoading] = useState(false);
-  console.log("isloading", loading);
   const [error, setError] = useState(null);
 
   /**
@@ -49,7 +48,7 @@ function Login() {
 
       setLoading(false);
     } catch (err) {
-      console.error("Logout error:", err);
+      
       // Still clear local data even if backend call fails
       setUser({ isLoggedIn: false });
       setTokens({ accessToken: null, refreshToken: null, idToken: null });
@@ -67,7 +66,7 @@ function Login() {
   return (
     <div className="flex items-center gap-4">
       {error && !user.isLoggedIn && (
-        <div className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded">
+        <div className="text-red-400 text-sm bg-foreground-bg border border-foreground-bg px-3 py-2 rounded">
           {error}
         </div>
       )}

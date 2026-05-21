@@ -1,18 +1,18 @@
+import { get } from "mongoose";
+import Cache from "../../../utils/Cache.js";
 import {
   validateInput,
   validateAndGetVersePair,
   checkConnectionExists,
   saveConnection,
-  getAllConnections,
-  getVerseConnections,
+  getVerseConnections,deleteConnectionService
 } from "./connections.service.js";
 
 //function to add a new function
 const createConnection = async (req, res) => {
   try {
     //retrieve the authenticated user
-    const user = req.user;
-    const userId = user.id;
+    const userSub = req.user.sub;
 
     //validate the user input
     const validatedInput = validateInput(req.body);
@@ -26,15 +26,17 @@ const createConnection = async (req, res) => {
 
     //first validate the verse keys to see the verses exist
     const verses = await validateAndGetVersePair(fromVerse, toVerse);
-    if (!verses.success) return res.status(verses.status).send(verses); //if the validity function returns an error response object
+    if (!verses.success)
+      return res
+        .status(verses.status)
+        .send({ success: false, message: verses.message }); //if the validity function returns an error response object
 
     //check if a connection already exists between the two verses
-    const exists = await checkConnectionExists(fromVerse, toVerse, userId);
+    const exists = await checkConnectionExists(fromVerse, toVerse, userSub);
     if (exists) {
       //if connection exists, send back an error response object
       return res.status(400).send({
         success: false,
-        status: 400,
         message: "connection exists",
       });
     }
@@ -42,11 +44,15 @@ const createConnection = async (req, res) => {
     //if keys are valid and the connection does not exist
     const data = await saveConnection(
       //save the connection
-      userId,
+      userSub,
       verses.fromVerse,
       verses.toVerse,
       note,
     );
+
+    //update the cache for the verse connections of the from and to verses, so that the new connection will be reflected when the user tries to retrieve the connections for either verse
+    Cache.deleteCache(`connections-${userSub}-${fromVerse}`);
+    Cache.deleteCache(`connections-${userSub}-${toVerse}`);
 
     if (data.success)
       //if the connection creation process has success
@@ -57,56 +63,110 @@ const createConnection = async (req, res) => {
     //incase of an error
     return res.status(500).send({
       success: false,
-      status: 500,
       message: "Could not add connection.",
-    });
-  }
-};
-
-//function to retrieve all user connections
-const getAllUserConnections = async (req, res) => {
-  //getting the user details,
-  const user = req.user;
-  const userId = user.id;
-  try {
-    //retrieving all connections through the user id
-    const result = await getAllConnections(userId);
-
-    return res.status(result.status || 200).send(result);
-  } catch (error) {
-    //incase of an error
-    return res.status(500).send({
-      success: false,
-      status: 500,
-      message: "Could not retrieve all connections.",
     });
   }
 };
 
 //function to retrieve all connections of a verse
 const getAllVerseConnections = async (req, res) => {
-  //getting the user details and verse key from the URL parameters
-  const verseKey = req.params.verse_key;
-  const user = req.user;
-  const userId = user.id;
-
   try {
-    //retrieving all connections through the user id
-    const result = await getVerseConnections(userId, verseKey);
+    //getting the user details and verse key from the URL parameters
+    const verseKey = req.params.verse_key;
+    const userSub = req.user.sub;
 
-    res.status(result.status || 200).send(result);
+    //retrieving all connections through the user id
+    const result = await getVerseConnections(userSub, verseKey);
+
+    if (result.connections) res.status(200).send(result);
   } catch (error) {
+    if (error.name === "ResourceNotFoundError") {
+      return res.status(404).send({
+        success: false,
+        message: error.message,
+      });
+    }
     //incase of an error
-    return res.status(500).send({
+    return res.status(error.statusCode || 500).send({
       success: false,
-      status: 500,
       message: "Could not retrieve all connections.",
     });
   }
 };
+const getVerseConnectionCount = async (req, res) => {
+  try {
+    const verseKey = req.params.verse_key;
+    const userSub = req.user.sub;
 
+    const result = await getVerseConnections(userSub, verseKey);
+
+    if (result.connections) {
+      return res.status(200).send({
+        success: true,
+        count: result.connections.length,
+      });
+    }
+  } catch (error) {
+    if (error.name === "ResourceNotFoundError") {
+      return res.status(404).send({
+        success: false,
+        message: error.message,
+      });
+    }
+    return res.status(error.statusCode || 500).send({
+      success: false,
+      message: "Could not retrieve connection count.",
+    });
+  }
+};
+
+//delete a connection
+const deleteConnection = async (req, res) => {
+  try {
+    const fromVerseKey = req.params.from_verse_key;
+    const toVerseKey = req.params.to_verse_key;
+    const userSub = req.user.sub;
+
+    const result = await checkConnectionExists(
+      fromVerseKey,
+      toVerseKey,
+      userSub,
+    );
+    if (!result) {
+      return res.status(404).send({
+        success: false,
+        message: "Connection does not exist.",
+      });
+    }
+
+    await deleteConnectionService(fromVerseKey, toVerseKey, userSub);
+
+    //update the cache for the verse connections of the from and to verses, so that the deleted connection will be removed when the user tries to retrieve the connections for either verse
+    Cache.deleteCache(`connections-${userSub}-${fromVerseKey}`);
+    Cache.deleteCache(`connections-${userSub}-${toVerseKey}`);
+    Cache.deleteCache(`${fromVerseKey}connected${toVerseKey}`);
+    Cache.deleteCache(`${toVerseKey}connected${fromVerseKey}`);
+
+    return res.status(200).send({
+      success: true,
+      message: "Connection deleted successfully.",
+    });
+  } catch (error) {
+    if (error.name === "ResourceNotFoundError") {
+      return res.status(404).send({
+        success: false,
+        message: error.message,
+      });
+    }
+    return res.status(error.statusCode || 500).send({
+      success: false,
+      message: "Could not delete connection.",
+    });
+  }
+};
 export default {
   createConnection,
-  getAllUserConnections,
   getAllVerseConnections,
+  getVerseConnectionCount,
+  deleteConnection
 };

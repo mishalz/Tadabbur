@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getQfConfig } from "../../qfConfig.js";
+import { getQfConfig } from "../../../qfConfig.js";
 
 /**
  * Proxy User API endpoints through the backend

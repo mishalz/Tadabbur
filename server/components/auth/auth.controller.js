@@ -7,11 +7,7 @@ import {
   extractUserFromIdToken,
   verifyScopesGranted,
 } from "./auth.service.js";
-import {
-  ConflictError,
-  AuthenticationError,
-  InvalidInputError,
-} from "../../utils/Errors.js";
+
 import { getQfConfig } from "../../qfConfig.js";
 
 /**
@@ -28,7 +24,7 @@ export const loginHandler = async (req, res) => {
     const redirectUri = `${process.env.APP_BASE_URL}/callback`;
 
     // Scopes — add only what your app actually needs
-    const scope = "openid offline_access user";
+    const scope = "openid offline_access user bookmark";
 
     const result = buildAuthorizationUrl({ redirectUri, scope });
 
@@ -68,7 +64,6 @@ export const loginHandler = async (req, res) => {
  * Returns access_token, refresh_token, id_token, and user info
  */
 export const exchangeQfToken = async (req, res) => {
-
   const { code, state } = req.body;
   const { authBaseUrl, clientId, clientSecret } = getQfConfig();
 
@@ -363,4 +358,3 @@ export const getCurrentUser = (req, res) => {
     });
   }
 };
-

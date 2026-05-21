@@ -1,6 +1,5 @@
 import Cache from "../../utils/Cache.js";
 import {
-  clearToken,
   getAccessToken,
   getJsonData,
 } from "../quran-retrieval/quran.service.js";
@@ -15,23 +14,16 @@ export const getAllSurahs = async (req, res) => {
     if (data) {
       return res.status(200).send(data); //if the data is found in the cache, return it with a success response
     }
-    clearToken();
     const token = await getAccessToken(); //get the access token for the Quran Foundation API
 
-    const surahList = await getJsonData("/content/api/v4/chapters"); //get the surah list from the Quran Foundation API
+    const { data: surahList } = await getJsonData("/content/api/v4/chapters"); //get the surah list from the Quran Foundation API
     Cache.updateCache(cacheKey, surahList); //update the cache with the retrieved surah list
-
-    // //method for fuzzy search
-    // const query = req.query ? (req.query.search ? req.query.search : null) : null;
-
-    // if (query) chapters = quranService.filterForSearch(query, surahList);
 
     //sending an error response if success is false
     if (!surahList) {
       throw new Error();
     } else res.status(200).send(surahList); //otherwise returning the result with a success
   } catch (err) {
-    console.log(err);
     res.status(500).send({
       message: "An error occurred while retrieving the surah list.",
     });
@@ -54,7 +46,7 @@ export const getSurahData = async (req, res) => {
     if (data) {
       return res.status(200).send(data); //if the data is found in the cache, return it with a success response
     }
-    let surahData = await getJsonData(url); //retrieving the verses
+    let { data: surahData } = await getJsonData(url); //retrieving the verses
     Cache.updateCache(cacheKey, surahData); //update the cache with the retrieved surah list
 
     if ((surahData && !surahData.verses) || !surahData) {
@@ -67,32 +59,23 @@ export const getSurahData = async (req, res) => {
   }
 };
 
-//to retrieve a random verse from the quran
-export const getRandomVerse = async (_, res) => {
-  const url = `${randomVerse}`; //the url to get random verse from
-  const cacheKey = `randomVerse`; //cache key to first search in the cache
-
-  const verse = await quranService.getQuranData(
-    url,
-    true,
-    cacheKey,
-    86400, //so that each random verse is only stored for one day (24 hours).
-  ); //fetching the random verse from the cache or API with necessary query parameters
-
-  if (verse.success == false) {
-    res.status(verse.status ? verse.status : 500).send(verse); //sending an error response if success is false
-  } else res.status(200).send(verse); //otherwise returning the result with a success
-};
-
 //to get Data for one verse
 export const getVerseDataRouteHandler = async (req, res) => {
-  const verseKey = req.params.verse_key; //retrieving the verse key from the request params
+  try {
+    const verseKey = req.params.verse_key; //retrieving the verse key from the request params
+    const url = `/verses/by_key/${verseKey}`;
+    const { data: verseData } = await getJsonData(url); //getting the verse data
 
-  const verseData = await quranService.getVerseData(verseKey); //getting the verse data
-
-  if (verseData.success == false) {
-    res.status(verseData.status ? verseData.status : 500).send(verseData); //sending an error response if success is false
-  } else {
-    res.status(200).send(verseData);
-  } //otherwise returning the result with a success
+    if (verseData.success == false) {
+      res.status(500).send({
+        message: "An error occurred while retrieving the verse data.",
+      }); //sending an error response if success is false
+    } else {
+      res.status(200).send(verseData);
+    } //otherwise returning the result with a success
+  } catch (err) {
+    res.status(500).send({
+      message: "An error occurred while retrieving the verse data.",
+    });
+  }
 };

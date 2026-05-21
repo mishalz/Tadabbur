@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SurahItem from "./SurahItem";
 // import "../styling/SurahList.css";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, MessageCircleWarning } from "lucide-react";
 import { Spinner } from "./ui/spinner";
 
 function SurahList() {
@@ -36,6 +36,16 @@ function SurahList() {
     <div className="w-full">
       <h1>Surahs</h1>
       <hr />
+      {error && surahlist.length == 0 && (
+        <div className="flex items-center gap-2 bg-destructive/20  text-destructive h-full rounded mt-5">
+          <span>
+            <MessageCircleWarning className="w-4 h-4 text-red-400" />
+          </span>
+          <p className="text-red-400 text-sm">
+            Could not load the Surahs. Please try again.
+          </p>
+        </div>
+      )}
       <div className="flex flex-column items-center gap-5 mt-5">
         {loading ? (
           <div className="flex items-center justify-center w-full ">
@@ -52,12 +62,6 @@ function SurahList() {
               englishName={surah.translated_name.name}
             />
           ))
-        )}
-
-        {error && surahlist.length == 0 && (
-          <div className="flex flex-column items-center mt-5">
-            <p>Could not load the surahs. Please try again.</p>
-          </div>
         )}
       </div>
     </div>

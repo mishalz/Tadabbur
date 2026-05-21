@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useLocation } from "react-router-dom";
 import Verse from "../components/Verse";
 import { Spinner } from "@/components/ui/spinner";
+import { ResourcesContext } from "../context/ResourcesContext";
+import { MessageCircleWarning } from "lucide-react";
 
 const StudySpacePage = () => {
   const [verses, setVerses] = useState([]);
@@ -9,7 +11,7 @@ const StudySpacePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [nextPageExist, setNextPageExist] = useState(false);
-
+  const { params } = useContext(ResourcesContext);
   const location = useLocation();
   // Retrieve the state data from the location object
   const storedSurah = JSON.parse(localStorage.getItem("last-surah")); //to retrieve the last surah that was opened in case the user refreshes the page or comes back to it after leaving
@@ -19,8 +21,8 @@ const StudySpacePage = () => {
   const { surahId, arabicName, englishName } =
     location.state || storedSurah || {};
 
-  const script = "text_uthmani"; //to include the arabic text in the response
-  const translation_id = 85; //to include the translation of the verse in the response
+  const script = params.script; //to include the arabic text in the response
+  const translation_id = params.translationId; //to include the translation of the verse in the response
 
   useEffect(() => {
     setLoading(true);
@@ -58,11 +60,19 @@ const StudySpacePage = () => {
   return (
     <div>
       <h1 className="mb-0">Surah {arabicName}</h1>
-      {!arabicName && <hr />}
       <div className="text-xl text-foreground-muted mb-3">{englishName}</div>
+      <hr />
       {loading && (
-        <div className="flex items-center justify-center w-full ">
+        <div className="flex items-center justify-center w-full mt-5">
           <Spinner className="w-8 h-8" />
+        </div>
+      )}
+      {error && (
+        <div className="flex items-center gap-2 bg-destructive/20  text-destructive h-full rounded mt-5">
+          <span>
+            <MessageCircleWarning className="w-4 h-4 text-red-400" />
+          </span>
+          <p className="text-red-400 text-sm">{error}</p>
         </div>
       )}
       <div>
