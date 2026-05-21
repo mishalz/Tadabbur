@@ -3,6 +3,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 const PORT = process.env.PORT || 8000;
+import cors from "cors";
 
 //retrieving routes from specific components
 import authRoutes from "./components/auth/auth.routes.js";
