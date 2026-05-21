@@ -11,7 +11,7 @@ function SurahItem({ id, arabicName, englishName }) {
   };
   return (
     <div
-      className="group bg-foreground-bg border border-foreground-border/10 px-6 py-3 rounded-full flex items-center gap-4 cursor-pointer text-foreground-muted hover:text-foreground hover:bg-primary/20 transition-colors duration-200 ease-in-out w-1/5 max-w-3/12"
+      className="group bg-foreground-bg border border-foreground-border/10 px-6 py-3 rounded-full flex items-center gap-4 cursor-pointer text-foreground-muted hover:text-foreground hover:bg-primary/20 transition-colors duration-200 ease-in-out w-3/4 lg:w-1/5 max-w-1/3 lg:max-w-1/4"
       onClick={openSurah}
     >
       <div className="surah-number">{id}</div>

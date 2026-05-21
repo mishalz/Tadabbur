@@ -46,7 +46,8 @@ function SurahList() {
           </p>
         </div>
       )}
-      <div className="flex flex-column flex-wrap items-center gap-5 mt-5">
+
+      <div className=" mt-5 w-full flex flex-column flex-wrap items-center gap-5 justify-around">
         {loading ? (
           <div className="flex items-center justify-center w-full ">
             <Spinner className="w-8 h-8" />
