@@ -15,6 +15,12 @@ const app = express();
 //essential to retrieve the json data in all requests' body.
 app.use(bodyParser.json());
 app.use(
+  cors({
+    origin: "https://benevolent-rolypoly-b74a4a.netlify.app",
+    credentials: true,
+  }),
+);
+app.use(
   session({
     secret: process.env.SESSION_SECRET_KEY,
     resave: false,
