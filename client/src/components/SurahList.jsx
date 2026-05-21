@@ -14,7 +14,7 @@ function SurahList() {
   useEffect(() => {
     setLoading(true);
     axios
-      .get("/api/quran/surahs", {
+      .get(`${import.meta.env.VITE_API_URL}/api/quran/surahs`, {
         headers: {
           Accept: "application/json",
         },
@@ -46,7 +46,7 @@ function SurahList() {
           </p>
         </div>
       )}
-      <div className="flex flex-column items-center gap-5 mt-5">
+      <div className="flex flex-column flex-wrap items-center gap-5 mt-5">
         {loading ? (
           <div className="flex items-center justify-center w-full ">
             <Spinner className="w-8 h-8" />

@@ -27,7 +27,7 @@ function Verse({ verse }) {
   const { tokens } = useContext(UserContext);
 
   useEffect(() => {
-    fetch(`/api/content/connections/${verse.verse_key}/count`, {
+    fetch(`${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}/count`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +58,7 @@ function Verse({ verse }) {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/content/bookmarks/bookmark/${verse.verse_key}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks/bookmark/${verse.verse_key}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -113,7 +113,7 @@ function Verse({ verse }) {
     setModalError(null);
 
     try {
-      const response = await fetch("/api/content/connections", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/content/connections`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -160,7 +160,7 @@ function Verse({ verse }) {
     if (dataToFetch) {
       setError(null);
       setIsLoading(true);
-      fetch(`/api/content/connections/${verse.verse_key}`, {
+      fetch(`${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +206,7 @@ function Verse({ verse }) {
   const manageBookmark = () => {
     if (bookmarkedDetails.isBookmarked) {
       setIsBookmarkLoading(true);
-      fetch(`/api/content/bookmarks/${bookmarkedDetails.id}`, {
+      fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks/${bookmarkedDetails.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -245,7 +245,7 @@ function Verse({ verse }) {
         });
     } else {
       setIsBookmarkLoading(true);
-      fetch("/api/content/bookmarks", {
+      fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

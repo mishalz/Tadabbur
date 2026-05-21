@@ -18,7 +18,7 @@ function Login() {
       setError(null);
 
       // Request authorization URL from backend
-      const response = await axios.get("/api/auth/login");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/login`);
 
       if (response.data.authUrl) {
         // Redirect to Quran Foundation hosted login
@@ -40,7 +40,7 @@ function Login() {
       setError(null);
 
       // Call backend logout endpoint
-      await axios.get("/api/auth/logout");
+      await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
 
       // Clear user context
       setUser({ isLoggedIn: false });

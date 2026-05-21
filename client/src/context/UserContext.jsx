@@ -46,7 +46,7 @@ export const UserContextProvider = ({ children }) => {
           // Try to get current user from backend
           try {
             const response = await axios.get(
-              `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/api/auth/me`,
+              `${import.meta.env.VITE_API_URL}/api/auth/me`,
             );
 
             if (response.data.user) {
@@ -120,7 +120,7 @@ export const UserContextProvider = ({ children }) => {
   const refreshAccessToken = async () => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/api/auth/refresh`,
+        `${import.meta.env.VITE_API_URL}/api/auth/refresh`,
       );
 
       if (response.data.accessToken) {
