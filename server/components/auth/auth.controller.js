@@ -24,7 +24,7 @@ export const loginHandler = async (req, res) => {
     const redirectUri = `${process.env.APP_BASE_URL}/callback`;
 
     // Scopes — add only what your app actually needs
-    const scope = "openid offline_access user bookmark";
+    const scope = process.env.QF_SCOPE;
 
     const result = buildAuthorizationUrl({ redirectUri, scope });
 
