@@ -4,6 +4,8 @@ import bodyParser from "body-parser";
 import session from "express-session";
 const PORT = process.env.PORT || 8000;
 import cors from "cors";
+import { RedisStore } from "connect-redis";
+import { createClient } from "redis";
 
 //retrieving routes from specific components
 import authRoutes from "./components/auth/auth.routes.js";
@@ -12,6 +14,9 @@ import quranRoutes from "./components/quran-retrieval/quran.routes.js";
 
 //starting the express app
 const app = express();
+
+const redisClient = createClient();
+await redisClient.connect().catch(console.error);
 
 app.use(
   cors({
@@ -23,9 +28,16 @@ app.use(
 app.use(bodyParser.json());
 app.use(
   session({
+    store: new RedisStore({ client: redisClient, prefix: "Tadabbur" }),
     secret: process.env.SESSION_SECRET_KEY,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    },
   }),
 );
 

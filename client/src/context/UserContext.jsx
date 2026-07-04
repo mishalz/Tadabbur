@@ -47,6 +47,7 @@ export const UserContextProvider = ({ children }) => {
           try {
             const response = await axios.get(
               `${import.meta.env.VITE_API_URL}/api/auth/me`,
+              { withCredentials: true },
             );
 
             if (response.data.user) {

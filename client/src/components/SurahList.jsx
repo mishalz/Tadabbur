@@ -14,11 +14,15 @@ function SurahList() {
   useEffect(() => {
     setLoading(true);
     axios
-      .get(`${import.meta.env.VITE_API_URL}/api/quran/surahs`, {
-        headers: {
-          Accept: "application/json",
+      .get(
+        `${import.meta.env.VITE_API_URL}/api/quran/surahs`,
+        {
+          headers: {
+            Accept: "application/json",
+          },
         },
-      })
+        { withCredentials: true },
+      )
       .then((res) => {
         if (res.status === 200) {
           setError(null);
@@ -27,7 +31,10 @@ function SurahList() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
+        setError(
+          err.message ||
+            "There was an error loading the Surahs. Please try again later.",
+        );
         setLoading(false);
       });
   }, []);

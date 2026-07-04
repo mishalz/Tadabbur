@@ -27,13 +27,16 @@ function Verse({ verse }) {
   const { tokens } = useContext(UserContext);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}/count`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${tokens.accessToken}`,
+    fetch(
+      `${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}/count`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.accessToken}`,
+        },
       },
-    })
+    )
       .then((res) => {
         if (res.status === 401) {
           setError("Unauthorized. Please log in again.");
@@ -58,13 +61,16 @@ function Verse({ verse }) {
   }, []);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks/bookmark/${verse.verse_key}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${tokens.accessToken}`,
+    fetch(
+      `${import.meta.env.VITE_API_URL}/api/content/bookmarks/bookmark/${verse.verse_key}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.accessToken}`,
+        },
       },
-    })
+    )
       .then((res) => {
         if (res.status === 401) {
           setError("Unauthorized. Please log in again.");
@@ -113,18 +119,21 @@ function Verse({ verse }) {
     setModalError(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/content/connections`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tokens.accessToken}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/content/connections`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokens.accessToken}`,
+          },
+          body: JSON.stringify({
+            fromVerse: data.fromVerse,
+            toVerse: data.toVerse,
+            note: data.note,
+          }),
         },
-        body: JSON.stringify({
-          fromVerse: data.fromVerse,
-          toVerse: data.toVerse,
-          note: data.note,
-        }),
-      });
+      );
 
       const result = await response.json();
 
@@ -160,13 +169,16 @@ function Verse({ verse }) {
     if (dataToFetch) {
       setError(null);
       setIsLoading(true);
-      fetch(`${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tokens.accessToken}`,
+      fetch(
+        `${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokens.accessToken}`,
+          },
         },
-      })
+      )
         .then((res) => {
           if (res.status === 404) {
             setNoOfConnections(0);
@@ -206,13 +218,16 @@ function Verse({ verse }) {
   const manageBookmark = () => {
     if (bookmarkedDetails.isBookmarked) {
       setIsBookmarkLoading(true);
-      fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks/${bookmarkedDetails.id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tokens.accessToken}`,
+      fetch(
+        `${import.meta.env.VITE_API_URL}/api/content/bookmarks/${bookmarkedDetails.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokens.accessToken}`,
+          },
         },
-      })
+      )
         .then((res) => {
           if (res.status === 401) {
             setError("Unauthorized. Please log in again.");
@@ -339,7 +354,7 @@ function Verse({ verse }) {
           </div>
         )}
       </div>
-      {sectionOpen && (
+      {sectionOpen && user?.isLoggedIn && (
         <div className="py-5 bg-foreground-bg transition duration-200 ease-in-out rounded-xl p-10">
           {isLoading ? (
             <div className="flex items-center justify-center w-full ">
