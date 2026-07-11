@@ -12,9 +12,26 @@ import { getQfConfig } from "../../qfConfig.js";
 
 /**
  * Handler: GET /api/auth/login
- * Generates OAuth2 authorization URL with PKCE, state, and nonce
- * Stores PKCE parameters in session
- * Returns redirect URL for client to use
+ *
+ * STEP 1 OF OAUTH2 FLOW:
+ * - Generates OAuth2 authorization URL with PKCE, state, and nonce
+ * - Stores PKCE parameters in Redis session (via req.session with connect-redis)
+ * - Returns redirect URL for client to use
+ *
+ * SESSION STORAGE (Redis):
+ * - oauthState: CSRF protection value
+ * - oauthNonce: OIDC nonce validation
+ * - codeVerifier: PKCE code verifier (kept secret, sent to token endpoint)
+ * - redirectUri: Must match registered URI exactly
+ * - requestedScope: Scopes requested from OAuth provider
+ *
+ * BROWSER FLOW:
+ * 1. Client calls GET /api/auth/login with credentials: true
+ * 2. Server creates session cookie and stores PKCE/state/nonce in Redis
+ * 3. Browser receives session cookie (SameSite=None for cross-origin)
+ * 4. Server returns authUrl
+ * 5. Client redirects browser to OAuth provider
+ * 6. Browser is redirected back with code and state in URL
  */
 export const loginHandler = async (req, res) => {
   try {
@@ -45,6 +62,20 @@ export const loginHandler = async (req, res) => {
         });
       }
 
+      // Debug: log session id and stored PKCE/state values
+      try {
+        console.log("[Auth][login] Session saved:", {
+          sessionID: req.sessionID,
+          oauthState: req.session.oauthState,
+          oauthNonce: req.session.oauthNonce,
+          codeVerifier: req.session.codeVerifier ? "[present]" : "[missing]",
+          redirectUri: req.session.redirectUri,
+          requestedScope: req.session.requestedScope,
+        });
+      } catch (e) {
+        console.error("[Auth][login] Failed to log session info:", e);
+      }
+
       // Return the authorization URL for the client to redirect to
       res.json({
         authUrl: result.url,
@@ -60,13 +91,57 @@ export const loginHandler = async (req, res) => {
 
 /**
  * Handler: POST /api/auth/qf/exchange
- * Client sends authorization code and PKCE verifier
- * Backend exchanges with QF for tokens using client_secret
- * Returns access_token, refresh_token, id_token, and user info
+ *
+ * STEP 2 OF OAUTH2 FLOW:
+ * - Client sends authorization code and state from OAuth provider callback
+ * - Backend retrieves PKCE/state/nonce from Redis session (stored in Step 1)
+ * - Exchanges authorization code for tokens using client_secret
+ * - Returns access_token, refresh_token, id_token, and user info
+ *
+ * SESSION RETRIEVAL (Redis):
+ * - Validates state parameter (CSRF protection)
+ * - Retrieves codeVerifier (PKCE) from session
+ * - Validates nonce in id_token (OIDC protection)
+ * - Verifies scopes granted match requested scopes
+ *
+ * BROWSER FLOW:
+ * 1. OAuth provider redirects: GET /callback?code=AUTH_CODE&state=STATE
+ * 2. Client extracts code and state from URL
+ * 3. Client calls POST /api/auth/qf/exchange with { code, state } and credentials: true
+ * 4. Browser sends session cookie (contains PKCE/nonce/state from Step 1)
+ * 5. Server retrieves values from Redis session
+ * 6. Server validates state matches (CSRF protection)
+ * 7. Server uses codeVerifier with authorization code to get tokens
+ * 8. Server validates nonce in id_token (OIDC protection)
+ * 9. Server returns tokens to client
+ * 10. Client stores tokens in localStorage
+ *
+ * SECURITY:
+ * - Authorization code is single-use and expires quickly
+ * - PKCE codeVerifier never sent to browser or OAuth provider URL
+ * - State prevents CSRF attacks
+ * - Nonce prevents token replay attacks
+ * - Session stored in Redis is secure and persistent
  */
 export const exchangeQfToken = async (req, res) => {
   const { code, state } = req.body;
   const { authBaseUrl, clientId, clientSecret } = getQfConfig();
+
+  // Debug: log incoming cookies and session snapshot for troubleshooting
+  try {
+    console.log("[Auth][exchange] Incoming request:", {
+      cookies: req.headers.cookie || null,
+      sessionID: req.sessionID || null,
+      sessionSnapshot: {
+        oauthState: req.session?.oauthState,
+        oauthNonce: req.session?.oauthNonce,
+        codeVerifier: req.session?.codeVerifier ? "[present]" : "[missing]",
+        requestedScope: req.session?.requestedScope,
+      },
+    });
+  } catch (e) {
+    console.error("[Auth][exchange] Failed to log request info:", e);
+  }
 
   try {
     // ─────────────────────────────────────────────────────────────────
@@ -74,6 +149,9 @@ export const exchangeQfToken = async (req, res) => {
     // ─────────────────────────────────────────────────────────────────
     if (!validateState(state, req.session.oauthState)) {
       console.error("State validation failed - possible CSRF attack");
+      console.log("Returned state:", state);
+      console.log("Stored state:", req.session.oauthState);
+
       return res.status(403).json({
         error: "Invalid state parameter - CSRF validation failed",
       });
@@ -212,8 +290,27 @@ export const exchangeQfToken = async (req, res) => {
 
 /**
  * Handler: POST /api/auth/refresh
- * Refresh the access token using the refresh_token
- * Tokens are stored in session, so this maintains user state
+ *
+ * REFRESH TOKEN FLOW:
+ * - Retrieves refresh_token from Redis session (stored during login exchange)
+ * - Uses refresh_token to request new access_token from OAuth provider
+ * - Updates tokens in Redis session
+ * - Returns new access_token to client
+ *
+ * SESSION USAGE (Redis):
+ * - Retrieves refreshToken from session
+ * - Updates accessToken in session with new token
+ * - Updates expiresIn and tokenExpiresAt in session
+ *
+ * BROWSER FLOW:
+ * 1. Client gets 401 on /api/content/* request (access token expired)
+ * 2. Client interceptor calls POST /api/auth/refresh with credentials: true
+ * 3. Browser sends session cookie
+ * 4. Server retrieves refreshToken from Redis session
+ * 5. Server exchanges refreshToken for new accessToken with OAuth provider
+ * 6. Server updates session with new tokens
+ * 7. Server returns new accessToken
+ * 8. Client retries original request with new accessToken
  */
 export const refreshAccessToken = async (req, res) => {
   try {

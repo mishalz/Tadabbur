@@ -42,6 +42,7 @@ function CallbackPage() {
             code,
             state,
           },
+          { withCredentials: true },
         );
 
         if (!response.data.success) {
