@@ -29,7 +29,7 @@ const BookmarksPage = () => {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/content/bookmarks?${params.toString()}`,
+        `${process.env.VITE_API_URL}/api/content/bookmarks?${params.toString()}`,
         {
           method: "GET",
           headers: {

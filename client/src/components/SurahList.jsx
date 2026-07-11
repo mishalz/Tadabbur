@@ -15,7 +15,7 @@ function SurahList() {
     setLoading(true);
     axios
       .get(
-        `${import.meta.env.VITE_API_URL}/api/quran/surahs`,
+        `${process.env.VITE_API_URL}/api/quran/surahs`,
         {
           headers: {
             Accept: "application/json",

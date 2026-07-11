@@ -25,7 +25,6 @@ export const loginHandler = async (req, res) => {
 
     // Scopes — add only what your app actually needs
     const scope = process.env.QF_SCOPE;
-    console.log("Using scope:", scope);
 
     const result = buildAuthorizationUrl({ redirectUri, scope });
     console.log("Generated authorization URL:", result.url);
