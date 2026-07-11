@@ -58,36 +58,40 @@ export const checkConnectionExists = async (
   toVerseKey,
   userSub,
 ) => {
-  const driver = getDriver();
-  let session = driver.session();
+  try {
+    const driver = getDriver();
+    let session = driver.session();
 
-  //first check cache if the connection is stored there
-  let cacheKey = `${fromVerseKey}connected${toVerseKey}`;
-  let result = Cache.checkCache(cacheKey);
-  if (result) return true; //connection found in the cache
+    //first check cache if the connection is stored there
+    let cacheKey = `${fromVerseKey}connected${toVerseKey}`;
+    let result = Cache.checkCache(cacheKey);
+    if (result) return true; //connection found in the cache
 
-  cacheKey = `${toVerseKey}connected${fromVerseKey}`;
-  result = Cache.checkCache(cacheKey);
-  if (result) return true; //connection found in the cache with the other key since connections are not directional
+    cacheKey = `${toVerseKey}connected${fromVerseKey}`;
+    result = Cache.checkCache(cacheKey);
+    if (result) return true; //connection found in the cache with the other key since connections are not directional
 
-  //read the connection from the database
-  result = await session.executeRead((tx) => {
-    return tx.run(
-      `MATCH (v1:Verse)-[r:CONNECTED]-(v2:Verse) 
+    //read the connection from the database
+    result = await session.executeRead((tx) => {
+      return tx.run(
+        `MATCH (v1:Verse)-[r:CONNECTED]-(v2:Verse) 
         WHERE v1.key = $fromVerseKey AND r.userSub = $userSub AND v2.key = $toVerseKey
         RETURN r`,
-      { fromVerseKey, toVerseKey, userSub },
-    );
-  });
+        { fromVerseKey, toVerseKey, userSub },
+      );
+    });
 
-  //close the session
-  await session.close();
+    //close the session
+    await session.close();
 
-  //if data is found
-  if (result.records[0]) {
-    Cache.updateCache(cacheKey, true);
-    return true;
-  } else return false;
+    //if data is found
+    if (result.records[0]) {
+      Cache.updateCache(cacheKey, true);
+      return true;
+    } else return false;
+  } catch (error) {
+    throw new Error("Could not validate if the connection exists.");
+  }
 };
 
 //save the connection to the database
@@ -119,8 +123,6 @@ export const saveConnection = async (
   Cache.updateCache(`${fromVerse}connected${toVerse}`, true);
   return { success: true, message: "Connection added." }; //send back a success response
 };
-
-
 
 //get all connections for one specific verse
 export const getVerseConnections = async (userSub, verseKey) => {
@@ -183,7 +185,11 @@ export const getFormattedConnections = (connections) => {
   return formattedConnections;
 };
 
-export const deleteConnectionService = async (fromVerseKey, toVerseKey, userSub) => {
+export const deleteConnectionService = async (
+  fromVerseKey,
+  toVerseKey,
+  userSub,
+) => {
   const driver = getDriver();
   let session = driver.session();
 
@@ -192,7 +198,7 @@ export const deleteConnectionService = async (fromVerseKey, toVerseKey, userSub)
       `MATCH (v1:Verse {key: $fromVerseKey})-[r:CONNECTED {userSub: $userSub}]-(v2:Verse {key: $toVerseKey})
          DELETE r
          RETURN v1.key, v2.key`,
-      { fromVerseKey, toVerseKey, userSub }
+      { fromVerseKey, toVerseKey, userSub },
     );
   });
 

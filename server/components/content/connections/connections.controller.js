@@ -5,7 +5,8 @@ import {
   validateAndGetVersePair,
   checkConnectionExists,
   saveConnection,
-  getVerseConnections,deleteConnectionService
+  getVerseConnections,
+  deleteConnectionService,
 } from "./connections.service.js";
 
 //function to add a new function
@@ -63,7 +64,7 @@ const createConnection = async (req, res) => {
     //incase of an error
     return res.status(500).send({
       success: false,
-      message: "Could not add connection.",
+      message: err.message,
     });
   }
 };
@@ -168,5 +169,5 @@ export default {
   createConnection,
   getAllVerseConnections,
   getVerseConnectionCount,
-  deleteConnection
+  deleteConnection,
 };
