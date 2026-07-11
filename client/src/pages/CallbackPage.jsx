@@ -36,10 +36,13 @@ function CallbackPage() {
         }
 
         // Exchange authorization code for tokens
-        const response = await axios.post(`${process.env.VITE_API_URL}/api/auth/qf/exchange`, {
-          code,
-          state,
-        });
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/auth/qf/exchange`,
+          {
+            code,
+            state,
+          },
+        );
 
         if (!response.data.success) {
           throw new Error(response.data.error || "Token exchange failed");

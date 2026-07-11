@@ -18,7 +18,10 @@ function Login() {
       setError(null);
 
       // Request authorization URL from backend
-      const response = await axios.get(`${process.env.VITE_API_URL}/api/auth/login`, { withCredentials: true });
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        { withCredentials: true },
+      );
 
       if (response.data.authUrl) {
         // Redirect to Quran Foundation hosted login
@@ -40,7 +43,9 @@ function Login() {
       setError(null);
 
       // Call backend logout endpoint
-      await axios.get(`${process.env.VITE_API_URL}/api/auth/logout`, { withCredentials: true });
+      await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
+        withCredentials: true,
+      });
 
       // Clear user context
       setUser({ isLoggedIn: false });
@@ -48,7 +53,6 @@ function Login() {
 
       setLoading(false);
     } catch (err) {
-      
       // Still clear local data even if backend call fails
       setUser({ isLoggedIn: false });
       setTokens({ accessToken: null, refreshToken: null, idToken: null });

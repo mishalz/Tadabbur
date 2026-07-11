@@ -28,7 +28,7 @@ const StudySpacePage = () => {
     setLoading(true);
     if (surahId >= 1 && surahId <= 114) {
       fetch(
-        `${process.VITE_API_URL}/api/quran/surahs/${surahId}?page=${page}&script=${script}&translation_id=${translation_id}`,
+        `${import.meta.env.VITE_API_URL}/api/quran/surahs/${surahId}?page=${page}&script=${script}&translation_id=${translation_id}`,
         {
           method: "GET",
           headers: {

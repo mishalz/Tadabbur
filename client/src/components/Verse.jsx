@@ -28,7 +28,7 @@ function Verse({ verse }) {
 
   useEffect(() => {
     fetch(
-      `${process.env.VITE_API_URL}/api/content/connections/${verse.verse_key}/count`,
+      `${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}/count`,
       {
         method: "GET",
         headers: {
@@ -62,7 +62,7 @@ function Verse({ verse }) {
 
   useEffect(() => {
     fetch(
-      `${process.env.VITE_API_URL}/api/content/bookmarks/bookmark/${verse.verse_key}`,
+      `${import.meta.env.VITE_API_URL}/api/content/bookmarks/bookmark/${verse.verse_key}`,
       {
         method: "GET",
         headers: {
@@ -120,7 +120,7 @@ function Verse({ verse }) {
 
     try {
       const response = await fetch(
-        `${process.env.VITE_API_URL}/api/content/connections`,
+        `${import.meta.env.VITE_API_URL}/api/content/connections`,
         {
           method: "POST",
           headers: {
@@ -170,7 +170,7 @@ function Verse({ verse }) {
       setError(null);
       setIsLoading(true);
       fetch(
-        `${process.env.VITE_API_URL}/api/content/connections/${verse.verse_key}`,
+        `${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}`,
         {
           method: "GET",
           headers: {
@@ -219,7 +219,7 @@ function Verse({ verse }) {
     if (bookmarkedDetails.isBookmarked) {
       setIsBookmarkLoading(true);
       fetch(
-        `${process.env.VITE_API_URL}/api/content/bookmarks/${bookmarkedDetails.id}`,
+        `${import.meta.env.VITE_API_URL}/api/content/bookmarks/${bookmarkedDetails.id}`,
         {
           method: "DELETE",
           headers: {
@@ -260,7 +260,7 @@ function Verse({ verse }) {
         });
     } else {
       setIsBookmarkLoading(true);
-      fetch(`${process.env.VITE_API_URL}/api/content/bookmarks`, {
+      fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

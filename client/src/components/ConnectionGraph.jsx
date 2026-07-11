@@ -29,7 +29,7 @@ function ConnectionGraph({ connections, setDataToFetch }) {
       setDeleteNotification(null);
 
       const response = await fetch(
-        `${process.env.VITE_API_URL}/api/content/connections/${fromVerseKey}/${toVerseKey}`,
+        `${import.meta.env.VITE_API_URL}/api/content/connections/${fromVerseKey}/${toVerseKey}`,
         {
           method: "DELETE",
           headers: {
