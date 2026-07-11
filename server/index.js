@@ -15,7 +15,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://benevolent-rolypoly-b74a4a.netlify.app",
+    origin: process.env.APP_BASE_URL,
     credentials: true,
   }),
 );
@@ -25,7 +25,7 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET_KEY,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
   }),
 );
 
