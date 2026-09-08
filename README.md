@@ -4,7 +4,7 @@ A full-stack web application for the study and contemplation of the Holy Quran.
 
 Tadabbur provides a focused digital study space where users can explore verses and visualise meaningful semantic or syntactic relationships between them. Its distinguishing feature is the use of a graph-oriented NoSQL data model to create, store, and visualise connections across Quranic verses.
 
-**Live application:** [Open Tadabbur](https://benevolent-rolypoly-b74a4a.netlify.app/studyspace)
+**Live application:** [Open Tadabbur](https://benevolent-rolypoly-b74a4a.netlify.app)
 
 ## Overview
 
@@ -168,7 +168,7 @@ At a high level:
 
 The frontend is deployed on Netlify:
 
-- [Live study space](https://benevolent-rolypoly-b74a4a.netlify.app/studyspace)
+- [Live study space](https://benevolent-rolypoly-b74a4a.netlify.app)
 
 For a Netlify deployment, configure:
 
@@ -195,10 +195,6 @@ Contributions are welcome.
 3. Make focused, tested changes.
 4. Run the relevant frontend and backend checks.
 5. Open a pull request describing the problem, approach, and verification steps.
-
-## License
-
-Add a license file to clarify how others may use, modify, and distribute this project.
 
 ## Acknowledgements
 
