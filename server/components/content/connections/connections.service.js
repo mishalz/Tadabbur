@@ -81,6 +81,7 @@ export const checkConnectionExists = async (
       );
     });
 
+    console.log("Connection check result:", result);
     //close the session
     await session.close();
 

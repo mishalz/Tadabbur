@@ -37,54 +37,64 @@ app.use(bodyParser.json());
 // ─────────────────────────────────────────────────────────────────
 // Session Middleware with Redis Store
 // ─────────────────────────────────────────────────────────────────
+// Initialize Redis client (prefer REDIS_URL; fallback to host/port)
+const redisOptions = process.env.REDIS_URL
+  ? { url: process.env.REDIS_URL }
+  : {
+      username: "default",
+      password: process.env.REDIS_PASSWORD,
+      socket: {
+        host: process.env.REDIS_HOST || "127.0.0.1",
+        port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379,
+      },
+    };
 
-// Initialize Redis client
-const redisClient = createClient({
-  username: "default",
-  password: process.env.REDIS_PASSWORD,
-  socket: {
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
-  },
-});
+const redisClient = createClient(redisOptions);
 
 redisClient.on("error", (err) => {
   console.error("[Redis] Connection Error:", err.message);
 });
 
 redisClient.on("connect", () => {
-  console.log("[Redis] Connected successfully");
+  console.log("[Redis] Connected (socket established)");
 });
 
-// Connect Redis with error handling
-// Connect Redis with error handling
-try {
-  await redisClient.connect();
-  console.log(
-    "[Redis] Connected to",
-    process.env.REDIS_HOST + ":" + process.env.REDIS_PORT,
-  );
-} catch (error) {
-  console.error("[Redis] Failed to connect:", error.message);
-  console.error(
-    "Redis is required for production. Please ensure Redis is running or configure REDIS_HOST, REDIS_PORT, REDIS_PASSWORD.",
-  );
-  process.exit(1);
+// Try connecting with retries and exponential backoff
+async function connectRedisWithRetry(client, maxAttempts = 5) {
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    try {
+      await client.connect();
+      console.log(
+        "[Redis] Connected to",
+        process.env.REDIS_URL ||
+          `${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+      );
+      return;
+    } catch (err) {
+      attempt += 1;
+      const delay = Math.min(1000 * 2 ** attempt, 30000);
+      console.error(`[Redis] Connect attempt ${attempt} failed:`, err.message);
+      if (attempt >= maxAttempts) {
+        console.error("[Redis] Max connect attempts reached. Exiting.");
+        process.exit(1);
+      }
+      console.log(`[Redis] Retrying in ${delay}ms...`);
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
 }
 
-// Configure session store
-const sessionStore = new RedisStore({
-  client: redisClient,
-  prefix: "Tadabbur-session:",
-});
+await connectRedisWithRetry(redisClient);
 
 // Session configuration
 const sessionConfig = {
-  store: sessionStore,
   secret: process.env.SESSION_SECRET_KEY,
   resave: false,
   saveUninitialized: false,
   name: "tadabbur-session", // Custom session cookie name
+  rolling: true, // Refresh session TTL on activity
   cookie: {
     httpOnly: true, // Prevent client-side JS from accessing the cookie
     secure: NODE_ENV === "production", // HTTPS only in production
@@ -95,6 +105,15 @@ const sessionConfig = {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   },
 };
+
+// Configure session store (set TTL to match cookie.maxAge)
+const sessionStore = new RedisStore({
+  client: redisClient,
+  prefix: "Tadabbur-session:",
+  ttl: Math.floor(sessionConfig.cookie.maxAge / 1000),
+});
+
+sessionConfig.store = sessionStore;
 
 // If behind a proxy (like Render, Railway, Vercel), trust the proxy
 if (NODE_ENV === "production") {
