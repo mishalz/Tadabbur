@@ -34,5 +34,5 @@ Login uses the Quran Foundation OAuth2 **authorization-code flow with PKCE** and
 
 ## Notes
 
-- The ID token is decoded without signature verification. This is permitted by OpenID Connect because it is received directly from the token endpoint over TLS, and it is only used for the nonce check and basic profile claims. The user's identity for authorisation decisions is the server-side session.
+- The ID token is decoded (see `decodeJwtPayload` in `auth.service.js`) without signature verification. This is permitted by OpenID Connect because it is received directly from the token endpoint over TLS, and it is only used for the nonce check and basic profile claims. The user's identity for authorisation decisions is the server-side session.
 - Never log cookies, `state`, `nonce` or tokens.

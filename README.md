@@ -26,7 +26,7 @@ The application combines a React client with an Express API and a Postgres datab
 | Layer | Technology |
 | --- | --- |
 | Client | React 18, Vite, React Router, Tailwind CSS 4, D3 Force (graph), Axios |
-| API | Node.js (>= 22), Express 4, `express-session`, Joi, Helmet, `express-rate-limit` |
+| API | Node.js (22 or 24), Express 4, `express-session`, Joi, Helmet, `express-rate-limit` |
 | Data | Postgres (any provider; Neon in production) via `pg`, also used for sessions (`connect-pg-simple`) |
 | Quran content & login | [Quran Foundation](https://api-docs.quran.foundation) APIs and OAuth2 |
 | Tests / CI | `node:test` (API), Vitest (client), ESLint, GitHub Actions |
@@ -56,7 +56,7 @@ Tadabbur/
 
 ### Prerequisites
 
-- Node.js 22 or later and npm
+- Node.js 22 or 24 and npm
 - A Postgres database (a free [Neon](https://neon.com) project works, or a local install)
 - Quran Foundation API credentials ([request access](https://api-docs.quran.foundation/request-access)); register `http://localhost:5173/callback` as a redirect URI
 

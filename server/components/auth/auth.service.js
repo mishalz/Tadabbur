@@ -1,5 +1,4 @@
 import axios from "axios";
-import jwt from "jsonwebtoken";
 
 import { getQfConfig } from "../../qfConfig.js";
 import crypto from "crypto";
@@ -95,6 +94,36 @@ export function validateState(returnedState, storedState) {
 }
 
 /**
+ * Decode a JWT's payload WITHOUT verifying its signature.
+ *
+ * Acceptable here because the ID token is received directly from the Quran
+ * Foundation token endpoint over TLS (OpenID Connect allows skipping signature
+ * validation in that case); it is only used for the nonce check and profile
+ * claims. Never use this for tokens that arrive from the browser.
+ *
+ * (Replaces jsonwebtoken, whose dependency buffer-equal-constant-time crashes
+ * on newer Node versions because it needs the removed SlowBuffer API.)
+ *
+ * @param {string} token
+ * @returns {object|null} The payload claims, or null if the token is malformed
+ */
+export function decodeJwtPayload(token) {
+  if (typeof token !== "string") return null;
+
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+    return payload !== null && typeof payload === "object" && !Array.isArray(payload)
+      ? payload
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Validate the nonce claim in the ID token (OIDC nonce validation)
  * @param {string} idToken - JWT ID token from token exchange
  * @param {string} storedNonce - Nonce stored in server session before redirect
@@ -105,13 +134,7 @@ export function validateNonce(idToken, storedNonce) {
     return false;
   }
 
-  try {
-    const decoded = jwt.decode(idToken);
-    return decoded?.nonce === storedNonce;
-  } catch (error) {
-    console.error("Error decoding ID token for nonce validation:", error);
-    return false;
-  }
+  return decodeJwtPayload(idToken)?.nonce === storedNonce;
 }
 
 /**
@@ -124,13 +147,7 @@ export function extractUserFromIdToken(idToken) {
     return null;
   }
 
-  try {
-    const decoded = jwt.decode(idToken);
-    return decoded;
-  } catch (error) {
-    console.error("Error decoding ID token:", error);
-    return null;
-  }
+  return decodeJwtPayload(idToken);
 }
 
 /**
