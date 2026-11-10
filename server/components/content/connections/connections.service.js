@@ -53,45 +53,48 @@ export const validateAndGetVersePair = async (fromVerse, toVerse) => {
   }
 };
 
+//cache key for "does a connection exist between these two verses for this user".
+//Connections are not directional, so the pair is sorted, and the key includes
+//the user so one user's connections can never be reported for another.
+export const connectionExistsCacheKey = (userSub, verseKeyA, verseKeyB) => {
+  const [first, second] = [verseKeyA, verseKeyB].sort();
+  return `exists-${userSub}-${first}-${second}`;
+};
+
 export const checkConnectionExists = async (
   fromVerseKey,
   toVerseKey,
   userSub,
 ) => {
+  //first check cache if the connection is stored there
+  const cacheKey = connectionExistsCacheKey(userSub, fromVerseKey, toVerseKey);
+  if (Cache.checkCache(cacheKey)) return true;
+
+  let session;
   try {
-    const driver = getDriver();
-    let session = driver.session();
-
-    //first check cache if the connection is stored there
-    let cacheKey = `${fromVerseKey}connected${toVerseKey}`;
-    let result = Cache.checkCache(cacheKey);
-    if (result) return true; //connection found in the cache
-
-    cacheKey = `${toVerseKey}connected${fromVerseKey}`;
-    result = Cache.checkCache(cacheKey);
-    if (result) return true; //connection found in the cache with the other key since connections are not directional
+    session = getDriver().session();
 
     //read the connection from the database
-    result = await session.executeRead((tx) => {
+    const result = await session.executeRead((tx) => {
       return tx.run(
-        `MATCH (v1:Verse)-[r:CONNECTED]-(v2:Verse) 
+        `MATCH (v1:Verse)-[r:CONNECTED]-(v2:Verse)
         WHERE v1.key = $fromVerseKey AND r.userSub = $userSub AND v2.key = $toVerseKey
         RETURN r`,
         { fromVerseKey, toVerseKey, userSub },
       );
     });
 
-    console.log("Connection check result:", result);
-    //close the session
-    await session.close();
-
     //if data is found
     if (result.records[0]) {
       Cache.updateCache(cacheKey, true);
       return true;
-    } else return false;
+    }
+    return false;
   } catch (error) {
     throw new Error("Could not validate if the connection exists.");
+  } finally {
+    //always release the session, including on cache misses that throw
+    if (session) await session.close();
   }
 };
 
@@ -102,26 +105,35 @@ export const saveConnection = async (
   toVerse,
   note = "",
 ) => {
-  const driver = getDriver();
-  let session = driver.session();
+  const session = getDriver().session();
 
-  //writing to the database
-  await session.executeWrite((tx) => {
-    return tx.run(
-      `MERGE (v1:Verse {key: $fromVerse.key,arabicText:$fromVerse.arabicText,translation:$fromVerse.translation})
-         MERGE (v2:Verse {key: $toVerse.key, arabicText:$toVerse.arabicText,translation:$toVerse.translation})
-         MERGE (v1)-[r:CONNECTED {note: $note, userSub: $userSub}]-(v2)
-         RETURN v1.key,r.note,v2.key`,
-      { fromVerse, toVerse, note, userSub },
-    );
-  });
+  try {
+    //Verse nodes are identified by key only; text/translation are properties.
+    //(Previously they were part of the MERGE pattern, so any change to a
+    //translation created duplicate Verse nodes.)
+    await session.executeWrite((tx) => {
+      return tx.run(
+        `MERGE (v1:Verse {key: $fromVerse.key})
+           ON CREATE SET v1.arabicText = $fromVerse.arabicText, v1.translation = $fromVerse.translation
+         MERGE (v2:Verse {key: $toVerse.key})
+           ON CREATE SET v2.arabicText = $toVerse.arabicText, v2.translation = $toVerse.translation
+         MERGE (v1)-[r:CONNECTED {userSub: $userSub}]-(v2)
+           ON CREATE SET r.note = $note
+         RETURN v1.key, r.note, v2.key`,
+        { fromVerse, toVerse, note, userSub },
+      );
+    });
+  } finally {
+    await session.close();
+  }
 
-  await session.close();
-
-  //since a new connection has been created, the old cache needs to be deleted.
-  Cache.deleteCache(`connections-${userSub}`);
-  //add this new connection to the cache
-  Cache.updateCache(`${fromVerse}connected${toVerse}`, true);
+  //invalidate the cached connection lists for both verses and record that this pair now exists
+  Cache.deleteCache(`connections-${userSub}-${fromVerse.key}`);
+  Cache.deleteCache(`connections-${userSub}-${toVerse.key}`);
+  Cache.updateCache(
+    connectionExistsCacheKey(userSub, fromVerse.key, toVerse.key),
+    true,
+  );
   return { success: true, message: "Connection added." }; //send back a success response
 };
 
@@ -137,20 +149,24 @@ export const getVerseConnections = async (userSub, verseKey) => {
   if (result) return { success: true, connections: result }; //connections found in the cache
 
   //get the driver instance to connect to the database and retrieve the connections for the verse key passed in the parameters
-  const driver = getDriver();
-  let session = driver.session();
+  const session = getDriver().session();
 
-  //otherwise send request to the database
-  const verseConnections = await session.executeRead((tx) => {
-    return tx.run(
-      `MATCH (v1:Verse)-[r:CONNECTED]->(v2:Verse) 
-        WHERE r.userSub = $userSub AND v1.key = $verseKey OR v2.key = $verseKey
-        RETURN DISTINCT v1,r.note,v2`,
-      { userSub, verseKey },
-    );
-  });
-
-  await session.close();
+  //otherwise send request to the database.
+  //The parentheses matter: without them AND binds tighter than OR, so the
+  //"v2.key = $verseKey" branch ignored userSub and returned other users' connections.
+  let verseConnections;
+  try {
+    verseConnections = await session.executeRead((tx) => {
+      return tx.run(
+        `MATCH (v1:Verse)-[r:CONNECTED]->(v2:Verse)
+          WHERE r.userSub = $userSub AND (v1.key = $verseKey OR v2.key = $verseKey)
+          RETURN DISTINCT v1,r.note,v2`,
+        { userSub, verseKey },
+      );
+    });
+  } finally {
+    await session.close();
+  }
 
   //format the connections recieved from the database
   result = getFormattedConnections(verseConnections);
@@ -191,17 +207,20 @@ export const deleteConnectionService = async (
   toVerseKey,
   userSub,
 ) => {
-  const driver = getDriver();
-  let session = driver.session();
+  const session = getDriver().session();
 
-  await session.executeWrite((tx) => {
-    return tx.run(
-      `MATCH (v1:Verse {key: $fromVerseKey})-[r:CONNECTED {userSub: $userSub}]-(v2:Verse {key: $toVerseKey})
+  try {
+    await session.executeWrite((tx) => {
+      return tx.run(
+        `MATCH (v1:Verse {key: $fromVerseKey})-[r:CONNECTED {userSub: $userSub}]-(v2:Verse {key: $toVerseKey})
          DELETE r
          RETURN v1.key, v2.key`,
-      { fromVerseKey, toVerseKey, userSub },
-    );
-  });
+        { fromVerseKey, toVerseKey, userSub },
+      );
+    });
+  } finally {
+    await session.close();
+  }
 
-  await session.close();
+  Cache.deleteCache(connectionExistsCacheKey(userSub, fromVerseKey, toVerseKey));
 };

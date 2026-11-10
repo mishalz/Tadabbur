@@ -1,4 +1,3 @@
-import { get } from "mongoose";
 import Cache from "../../../utils/Cache.js";
 import {
   validateInput,
@@ -145,8 +144,6 @@ const deleteConnection = async (req, res) => {
     //update the cache for the verse connections of the from and to verses, so that the deleted connection will be removed when the user tries to retrieve the connections for either verse
     Cache.deleteCache(`connections-${userSub}-${fromVerseKey}`);
     Cache.deleteCache(`connections-${userSub}-${toVerseKey}`);
-    Cache.deleteCache(`${fromVerseKey}connected${toVerseKey}`);
-    Cache.deleteCache(`${toVerseKey}connected${fromVerseKey}`);
 
     return res.status(200).send({
       success: true,
