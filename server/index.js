@@ -89,6 +89,11 @@ async function connectRedisWithRetry(client, maxAttempts = 5) {
 await connectRedisWithRetry(redisClient);
 
 // Session configuration
+function resolveSameSite() {
+  const override = (process.env.COOKIE_SAMESITE || "").toLowerCase();
+  if (["lax", "strict", "none"].includes(override)) return override;
+  return NODE_ENV === "production" ? "none" : "lax";
+}
 const sessionConfig = {
   secret: process.env.SESSION_SECRET_KEY,
   resave: false,
@@ -101,7 +106,9 @@ const sessionConfig = {
     // In production we need SameSite=None for cross-site requests (and secure=true).
     // For local development allow 'lax' to avoid the browser rejecting the cookie
     // when Secure is not set on localhost.
-    sameSite: NODE_ENV === "production" ? "none" : "lax",
+    // Set COOKIE_SAMESITE=lax when the API is served same-site (e.g. proxied
+    // through the frontend host); "none" is only needed for direct cross-site calls.
+    sameSite: resolveSameSite(),
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   },
 };

@@ -1,1 +1,9 @@
+# Proxy API calls to the Render backend so the browser only ever talks to this
+# site's origin. The session cookie then becomes first-party, which keeps
+# login working in Safari/Brave/Chrome with third-party cookies blocked.
+# Requires the build-time env var VITE_API_URL to be empty (so the client
+# calls relative "/api/..." URLs).
+/api/*    https://tadabbur.onrender.com/api/:splat    200
+
+# Single-page-app fallback
 /*    /index.html   200
