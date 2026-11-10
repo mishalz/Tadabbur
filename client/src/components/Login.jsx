@@ -4,7 +4,7 @@ import axios from "axios";
 import { Spinner } from "./ui/spinner";
 
 function Login() {
-  const { user, setUser, setTokens } = useContext(UserContext);
+  const { user, setUser } = useContext(UserContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -49,13 +49,12 @@ function Login() {
 
       // Clear user context
       setUser({ isLoggedIn: false });
-      setTokens({ accessToken: null, refreshToken: null, idToken: null });
 
       setLoading(false);
     } catch (err) {
       // Still clear local data even if backend call fails
       setUser({ isLoggedIn: false });
-      setTokens({ accessToken: null, refreshToken: null, idToken: null });
+      setLoading(false);
     }
   };
 

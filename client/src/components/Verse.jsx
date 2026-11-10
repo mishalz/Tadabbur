@@ -7,7 +7,7 @@ import ConnectionGraph from "./ConnectionGraph";
 import AddConnectionModal from "./AddConnectionModal";
 
 function Verse({ verse }) {
-  const { user, setUser, setTokens } = useContext(UserContext);
+  const { user, setUser } = useContext(UserContext);
   const [sectionOpen, setSectionOpen] = useState(false);
   const [dataToFetch, setDataToFetch] = useState(false);
   const [noOfConnections, setNoOfConnections] = useState("");
@@ -24,7 +24,6 @@ function Verse({ verse }) {
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(true);
   const [bookmarkError, setBookmarkError] = useState(null);
 
-  const { tokens } = useContext(UserContext);
 
   useEffect(() => {
     fetch(
@@ -42,7 +41,6 @@ function Verse({ verse }) {
           setError("Unauthorized. Please log in again.");
           // Clear user context
           setUser({ isLoggedIn: false });
-          setTokens({ accessToken: null, refreshToken: null, idToken: null });
           setNoOfConnections(0);
           return {};
         }
@@ -76,7 +74,6 @@ function Verse({ verse }) {
           setError("Unauthorized. Please log in again.");
           // Clear user context
           setUser({ isLoggedIn: false });
-          setTokens({ accessToken: null, refreshToken: null, idToken: null });
           setBookmarkedDetails({
             isBookmarked: false,
             id: null,
@@ -187,7 +184,6 @@ function Verse({ verse }) {
             setError("Unauthorized. Please log in again.");
             // Clear user context
             setUser({ isLoggedIn: false });
-            setTokens({ accessToken: null, refreshToken: null, idToken: null });
             setNoOfConnections(0);
             return {};
           }
@@ -233,7 +229,6 @@ function Verse({ verse }) {
             setError("Unauthorized. Please log in again.");
             // Clear user context
             setUser({ isLoggedIn: false });
-            setTokens({ accessToken: null, refreshToken: null, idToken: null });
             setBookmarkedDetails({
               isBookmarked: false,
               id: null,
@@ -275,7 +270,6 @@ function Verse({ verse }) {
             setError("Unauthorized. Please log in again.");
             // Clear user context
             setUser({ isLoggedIn: false });
-            setTokens({ accessToken: null, refreshToken: null, idToken: null });
             setBookmarkedDetails({
               isBookmarked: false,
               id: null,

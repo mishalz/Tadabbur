@@ -176,3 +176,31 @@ export async function refreshTokens(refreshToken) {
   );
   return response.data;
 }
+
+// Claims the browser is allowed to see. The full ID-token claim set stays in
+// the server-side session; it includes values (nonce, auth_time, ...) the UI
+// has no use for.
+const PUBLIC_USER_FIELDS = [
+  "sub",
+  "email",
+  "name",
+  "given_name",
+  "family_name",
+  "first_name",
+  "last_name",
+];
+
+/**
+ * Reduce the session's user claims to what is safe and useful to send to the browser.
+ * @param {object|null} user
+ * @returns {object|null}
+ */
+export function toPublicUser(user) {
+  if (!user) return null;
+  return Object.fromEntries(
+    PUBLIC_USER_FIELDS.filter((key) => user[key] !== undefined).map((key) => [
+      key,
+      user[key],
+    ]),
+  );
+}

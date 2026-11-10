@@ -5,6 +5,7 @@ import {
   validateNonce,
   extractUserFromIdToken,
   verifyScopesGranted,
+  toPublicUser,
 } from "./auth.service.js";
 
 import { getQfConfig } from "../../qfConfig.js";
@@ -79,7 +80,7 @@ export const loginHandler = async (req, res) => {
  * - Client sends authorization code and state from OAuth provider callback
  * - Backend retrieves PKCE/state/nonce from Postgres session (stored in Step 1)
  * - Exchanges authorization code for tokens using client_secret
- * - Returns access_token, refresh_token, id_token, and user info
+ * - Stores tokens in the server-side session; returns only public user info
  *
  * SESSION RETRIEVAL (Postgres):
  * - Validates state parameter (CSRF protection)
@@ -96,8 +97,8 @@ export const loginHandler = async (req, res) => {
  * 6. Server validates state matches (CSRF protection)
  * 7. Server uses codeVerifier with authorization code to get tokens
  * 8. Server validates nonce in id_token (OIDC protection)
- * 9. Server returns tokens to client
- * 10. Client stores tokens in localStorage
+ * 9. Server returns public user info (tokens never leave the server)
+ * 10. Client holds the user in memory; the session cookie is its only credential
  *
  * SECURITY:
  * - Authorization code is single-use and expires quickly
@@ -222,16 +223,13 @@ export const exchangeQfToken = async (req, res) => {
       }
 
       // ─────────────────────────────────────────────────────────────────
-      // 8. Return tokens and user info to client
+      // 8. Return user info to client. Tokens are NOT sent to the browser:
+      //    they stay in the server-side session and are attached to
+      //    upstream calls by the server.
       // ─────────────────────────────────────────────────────────────────
       res.json({
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        idToken: tokenData.id_token,
-        expiresIn: tokenData.expires_in,
-        tokenType: tokenData.token_type,
         scope: tokenData.scope,
-        user,
+        user: toPublicUser(user),
         success: true,
       });
     });
@@ -266,7 +264,7 @@ export const exchangeQfToken = async (req, res) => {
  * - Retrieves refresh_token from Postgres session (stored during login exchange)
  * - Uses refresh_token to request new access_token from OAuth provider
  * - Updates tokens in Postgres session
- * - Returns new access_token to client
+ * - Returns only expiry info (the token stays in the session)
  *
  * SESSION USAGE (Postgres):
  * - Retrieves refreshToken from session
@@ -274,14 +272,12 @@ export const exchangeQfToken = async (req, res) => {
  * - Updates expiresIn and tokenExpiresAt in session
  *
  * BROWSER FLOW:
- * 1. Client gets 401 on /api/content/* request (access token expired)
- * 2. Client interceptor calls POST /api/auth/refresh with credentials: true
- * 3. Browser sends session cookie
- * 4. Server retrieves refreshToken from Postgres session
- * 5. Server exchanges refreshToken for new accessToken with OAuth provider
- * 6. Server updates session with new tokens
- * 7. Server returns new accessToken
- * 8. Client retries original request with new accessToken
+ * 1. /api/content/* requests refresh an expired access token automatically
+ *    (see extractUserSub middleware), so the browser never handles tokens.
+ * 2. This endpoint remains for an explicit refresh: the browser sends only
+ *    its session cookie.
+ * 3. Server exchanges the session's refreshToken for a new accessToken,
+ *    updates the session, and returns only expiry info.
  */
 export const refreshAccessToken = async (req, res) => {
   try {
@@ -330,10 +326,9 @@ export const refreshAccessToken = async (req, res) => {
         });
       }
 
+      // The new access token stays in the session; it is not returned.
       res.json({
-        accessToken: tokenData.access_token,
         expiresIn: tokenData.expires_in,
-        tokenType: tokenData.token_type,
         success: true,
       });
     });
@@ -416,8 +411,7 @@ export const getCurrentUser = (req, res) => {
     }
 
     res.json({
-      user: req.session.user,
-      accessToken: req.session.accessToken,
+      user: toPublicUser(req.session.user),
       success: true,
     });
   } catch (error) {
