@@ -2,12 +2,12 @@ import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
-import { RedisStore } from "connect-redis";
-import { createClient } from "redis";
+import connectPgSimple from "connect-pg-simple";
+import pool, { checkDatabase } from "./db/pool.js";
+import { ensureSchema } from "./db/schema.js";
 
 const PORT = process.env.PORT || 8000;
 const NODE_ENV = process.env.NODE_ENV || "development";
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
 import cors from "cors";
 
@@ -35,54 +35,25 @@ app.use(
 app.use(bodyParser.json());
 
 // ─────────────────────────────────────────────────────────────────
-// Session Middleware with Redis Store
+// Database (Postgres) – app data and sessions
 // ─────────────────────────────────────────────────────────────────
-// Initialize Redis client (prefer REDIS_URL; fallback to host/port).
-// reconnectStrategy retries forever with capped exponential backoff, so a slow
-// or sleeping Redis instance never takes the whole API down.
-// disableOfflineQueue makes commands fail fast while disconnected instead of
-// hanging requests until the client reconnects.
-const reconnectStrategy = (retries) => Math.min(500 * 2 ** retries, 15000);
-
-const redisOptions = process.env.REDIS_URL
-  ? {
-      url: process.env.REDIS_URL,
-      socket: { reconnectStrategy },
-      disableOfflineQueue: true,
-    }
-  : {
-      username: "default",
-      password: process.env.REDIS_PASSWORD,
-      socket: {
-        host: process.env.REDIS_HOST || "127.0.0.1",
-        port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379,
-        reconnectStrategy,
-      },
-      disableOfflineQueue: true,
-    };
-
-const redisClient = createClient(redisOptions);
-
-redisClient.on("error", (err) => {
-  console.error("[Redis] Error:", err.message);
-});
-redisClient.on("ready", () => console.log("[Redis] Ready"));
-redisClient.on("reconnecting", () => console.log("[Redis] Reconnecting..."));
-
-// Connect in the background: the server starts listening immediately and
-// sessions start working as soon as Redis is ready. A failure is logged,
-// never fatal.
-redisClient
-  .connect()
-  .catch((err) => console.error("[Redis] Initial connect failed:", err.message));
+// Create tables in the background; a failure (e.g. a suspended free-tier
+// database still waking up) is logged and retried on the next query, never fatal.
+ensureSchema()
+  .then(() => console.log("[DB] Schema ready"))
+  .catch((err) => console.error("[DB] Schema setup failed:", err.message));
 
 // Health check (used by Render / uptime monitors). Does not require a session.
-app.get("/healthz", (_, res) => {
-  const redisReady = redisClient.isReady;
-  res.status(redisReady ? 200 : 503).json({
-    status: redisReady ? "ok" : "degraded",
-    redis: redisReady ? "up" : "down",
-  });
+// It also queries the database, so a regular ping keeps a free-tier
+// database from suspending.
+app.get("/healthz", async (_, res) => {
+  try {
+    await checkDatabase();
+    res.status(200).json({ status: "ok", database: "up" });
+  } catch (err) {
+    console.error("[DB] Health check failed:", err.message);
+    res.status(503).json({ status: "degraded", database: "down" });
+  }
 });
 
 // Session configuration
@@ -110,14 +81,14 @@ const sessionConfig = {
   },
 };
 
-// Configure session store (set TTL to match cookie.maxAge)
-const sessionStore = new RedisStore({
-  client: redisClient,
-  prefix: "Tadabbur-session:",
-  ttl: Math.floor(sessionConfig.cookie.maxAge / 1000),
+// Configure session store (Postgres; the "session" table is created if missing)
+const PgSessionStore = connectPgSimple(session);
+sessionConfig.store = new PgSessionStore({
+  pool,
+  tableName: "session",
+  createTableIfMissing: true,
+  pruneSessionInterval: 60 * 60, // delete expired sessions hourly
 });
-
-sessionConfig.store = sessionStore;
 
 // If behind a proxy (like Render, Railway, Vercel), trust the proxy
 if (NODE_ENV === "production") {

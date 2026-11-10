@@ -15,10 +15,10 @@ import { getQfConfig } from "../../qfConfig.js";
  *
  * STEP 1 OF OAUTH2 FLOW:
  * - Generates OAuth2 authorization URL with PKCE, state, and nonce
- * - Stores PKCE parameters in Redis session (via req.session with connect-redis)
+ * - Stores PKCE parameters in Postgres session (via req.session with connect-pg-simple)
  * - Returns redirect URL for client to use
  *
- * SESSION STORAGE (Redis):
+ * SESSION STORAGE (Postgres):
  * - oauthState: CSRF protection value
  * - oauthNonce: OIDC nonce validation
  * - codeVerifier: PKCE code verifier (kept secret, sent to token endpoint)
@@ -27,7 +27,7 @@ import { getQfConfig } from "../../qfConfig.js";
  *
  * BROWSER FLOW:
  * 1. Client calls GET /api/auth/login with credentials: true
- * 2. Server creates session cookie and stores PKCE/state/nonce in Redis
+ * 2. Server creates session cookie and stores PKCE/state/nonce in Postgres
  * 3. Browser receives session cookie (SameSite=None for cross-origin)
  * 4. Server returns authUrl
  * 5. Client redirects browser to OAuth provider
@@ -94,11 +94,11 @@ export const loginHandler = async (req, res) => {
  *
  * STEP 2 OF OAUTH2 FLOW:
  * - Client sends authorization code and state from OAuth provider callback
- * - Backend retrieves PKCE/state/nonce from Redis session (stored in Step 1)
+ * - Backend retrieves PKCE/state/nonce from Postgres session (stored in Step 1)
  * - Exchanges authorization code for tokens using client_secret
  * - Returns access_token, refresh_token, id_token, and user info
  *
- * SESSION RETRIEVAL (Redis):
+ * SESSION RETRIEVAL (Postgres):
  * - Validates state parameter (CSRF protection)
  * - Retrieves codeVerifier (PKCE) from session
  * - Validates nonce in id_token (OIDC protection)
@@ -109,7 +109,7 @@ export const loginHandler = async (req, res) => {
  * 2. Client extracts code and state from URL
  * 3. Client calls POST /api/auth/qf/exchange with { code, state } and credentials: true
  * 4. Browser sends session cookie (contains PKCE/nonce/state from Step 1)
- * 5. Server retrieves values from Redis session
+ * 5. Server retrieves values from Postgres session
  * 6. Server validates state matches (CSRF protection)
  * 7. Server uses codeVerifier with authorization code to get tokens
  * 8. Server validates nonce in id_token (OIDC protection)
@@ -121,7 +121,7 @@ export const loginHandler = async (req, res) => {
  * - PKCE codeVerifier never sent to browser or OAuth provider URL
  * - State prevents CSRF attacks
  * - Nonce prevents token replay attacks
- * - Session stored in Redis is secure and persistent
+ * - Session stored in Postgres is secure and persistent
  */
 export const exchangeQfToken = async (req, res) => {
   const { code, state } = req.body;
@@ -292,12 +292,12 @@ export const exchangeQfToken = async (req, res) => {
  * Handler: POST /api/auth/refresh
  *
  * REFRESH TOKEN FLOW:
- * - Retrieves refresh_token from Redis session (stored during login exchange)
+ * - Retrieves refresh_token from Postgres session (stored during login exchange)
  * - Uses refresh_token to request new access_token from OAuth provider
- * - Updates tokens in Redis session
+ * - Updates tokens in Postgres session
  * - Returns new access_token to client
  *
- * SESSION USAGE (Redis):
+ * SESSION USAGE (Postgres):
  * - Retrieves refreshToken from session
  * - Updates accessToken in session with new token
  * - Updates expiresIn and tokenExpiresAt in session
@@ -306,7 +306,7 @@ export const exchangeQfToken = async (req, res) => {
  * 1. Client gets 401 on /api/content/* request (access token expired)
  * 2. Client interceptor calls POST /api/auth/refresh with credentials: true
  * 3. Browser sends session cookie
- * 4. Server retrieves refreshToken from Redis session
+ * 4. Server retrieves refreshToken from Postgres session
  * 5. Server exchanges refreshToken for new accessToken with OAuth provider
  * 6. Server updates session with new tokens
  * 7. Server returns new accessToken

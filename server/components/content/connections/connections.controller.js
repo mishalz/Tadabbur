@@ -1,4 +1,3 @@
-import Cache from "../../../utils/Cache.js";
 import {
   validateInput,
   validateAndGetVersePair,
@@ -50,15 +49,14 @@ const createConnection = async (req, res) => {
       note,
     );
 
-    //update the cache for the verse connections of the from and to verses, so that the new connection will be reflected when the user tries to retrieve the connections for either verse
-    Cache.deleteCache(`connections-${userSub}-${fromVerse}`);
-    Cache.deleteCache(`connections-${userSub}-${toVerse}`);
 
-    if (data.success)
-      //if the connection creation process has success
-      return res
-        .status(201)
-        .send({ success: true, message: "Connection added successfully" });
+    if (!data.success) {
+      //another request created the same connection in the meantime
+      return res.status(400).send({ success: false, message: data.message });
+    }
+    return res
+      .status(201)
+      .send({ success: true, message: "Connection added successfully" });
   } catch (err) {
     //incase of an error
     return res.status(500).send({
@@ -127,23 +125,17 @@ const deleteConnection = async (req, res) => {
     const toVerseKey = req.params.to_verse_key;
     const userSub = req.user.sub;
 
-    const result = await checkConnectionExists(
+    const deleted = await deleteConnectionService(
       fromVerseKey,
       toVerseKey,
       userSub,
     );
-    if (!result) {
+    if (!deleted) {
       return res.status(404).send({
         success: false,
         message: "Connection does not exist.",
       });
     }
-
-    await deleteConnectionService(fromVerseKey, toVerseKey, userSub);
-
-    //update the cache for the verse connections of the from and to verses, so that the deleted connection will be removed when the user tries to retrieve the connections for either verse
-    Cache.deleteCache(`connections-${userSub}-${fromVerseKey}`);
-    Cache.deleteCache(`connections-${userSub}-${toVerseKey}`);
 
     return res.status(200).send({
       success: true,
