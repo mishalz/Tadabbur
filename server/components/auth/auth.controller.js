@@ -1,5 +1,4 @@
 import axios from "axios";
-import jwt from "jsonwebtoken";
 import {
   buildAuthorizationUrl,
   validateState,
@@ -9,6 +8,7 @@ import {
 } from "./auth.service.js";
 
 import { getQfConfig } from "../../qfConfig.js";
+import config from "../../config.js";
 
 /**
  * Handler: GET /api/auth/login
@@ -35,15 +35,13 @@ import { getQfConfig } from "../../qfConfig.js";
  */
 export const loginHandler = async (req, res) => {
   try {
-    const { authBaseUrl } = getQfConfig();
-
     // redirectUri must exactly match one of the URIs registered with QF
-    const redirectUri = `${process.env.APP_BASE_URL}/callback`;
+    const redirectUri = `${config.appBaseUrl}/callback`;
 
-    // Scopes — add only what your app actually needs
-    const scope = process.env.QF_SCOPE;
-
-    const result = buildAuthorizationUrl({ redirectUri, scope });
+    const result = buildAuthorizationUrl({
+      redirectUri,
+      scope: config.qfScope,
+    });
 
     // MUST store PKCE parameters in session BEFORE redirecting
     // These will be validated in the callback and used in token exchange
@@ -51,7 +49,7 @@ export const loginHandler = async (req, res) => {
     req.session.oauthNonce = result.nonce;
     req.session.codeVerifier = result.codeVerifier;
     req.session.redirectUri = redirectUri;
-    req.session.requestedScope = scope;
+    req.session.requestedScope = config.qfScope;
 
     // Save session before responding
     req.session.save((err) => {

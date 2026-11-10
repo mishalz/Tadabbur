@@ -4,117 +4,83 @@ import {
   removeBookmarkFromQF,
   getAllBookmarksfromQF,
 } from "./bookmarks.service.js";
-import { getBookmarks } from "./user-api.controller.js";
+import { VERSE_KEY_PATTERN } from "../../quran-retrieval/quran.service.js";
+
+const BOOKMARK_ID_PATTERN = /^[\w-]{1,64}$/;
+const MAX_PAGE_SIZE = 20;
+
+const fail = (res, status, message) =>
+  res.status(status).send({ success: false, message });
+
+// Respond with the upstream-derived status when there is one (401/404/502),
+// otherwise a plain 500; the message stays generic.
+const handleError = (res, error, message) => {
+  console.error(`[Bookmarks] ${message}`, error.message);
+  return fail(res, error.statusCode || 500, message);
+};
 
 const getAllBookmarks = async (req, res) => {
+  const first = Number.parseInt(req.query.first, 10);
+  const pageSize =
+    Number.isInteger(first) && first > 0 ? Math.min(first, MAX_PAGE_SIZE) : MAX_PAGE_SIZE;
+  const after =
+    typeof req.query.after === "string" && req.query.after.length <= 200
+      ? req.query.after
+      : null;
+
   try {
-    const userToken = req.user.token;
-
-    // Extract pagination parameters from query string
-    const first = req.query.first ? parseInt(req.query.first, 10) : 20;
-    const after = req.query.after || null;
-
-    const bookmarks = await getAllBookmarksfromQF(userToken, { first, after });
-
-    if (bookmarks.success)
-      return res.status(200).send({
-        success: true,
-        bookmarks: bookmarks.bookmarks,
-        pagination: {
-          hasNextPage: bookmarks.pagination.hasNextPage,
-          endCursor: bookmarks.pagination.endCursor,
-        },
-      });
-  } catch (err) {
-    return res.status(500).send({
-      success: false,
-      message: "An error occurred while retrieving bookmarks.",
+    const { bookmarks, pagination } = await getAllBookmarksfromQF(req.user.token, {
+      first: pageSize,
+      after,
     });
+    return res.status(200).send({ success: true, bookmarks, pagination });
+  } catch (error) {
+    return handleError(res, error, "An error occurred while retrieving bookmarks.");
   }
 };
 
 const getBookmark = async (req, res) => {
-  try {
-    const verseKey = req.params.verse_key;
-    const userToken = req.user.token;
+  const verseKey = req.params.verse_key;
+  if (!VERSE_KEY_PATTERN.test(verseKey)) {
+    return fail(res, 422, "Invalid verse key.");
+  }
 
-    const bookmark = await getBookmarkFromQF(verseKey, userToken);
-    if (bookmark.success) {
-      return res.status(200).send({
-        success: true,
-        bookmark: bookmark.bookmark,
-        bookmarkId: bookmark.bookmarkId,
-      });
-    } else {
-      throw new Error();
-    }
-  } catch (err) {
-    // In case of an error
-    return res.status(500).send({
-      success: false,
-      message: "Failed to retrieve bookmark.",
-    });
+  try {
+    const { bookmark, bookmarkId } = await getBookmarkFromQF(verseKey, req.user.token);
+    return res.status(200).send({ success: true, bookmark, bookmarkId });
+  } catch (error) {
+    return handleError(res, error, "Failed to retrieve bookmark.");
   }
 };
 
 const addBookmark = async (req, res) => {
-  // This is a placeholder implementation. You would replace this with actual logic to add a bookmark.
+  const verseKey = req.body?.verseKey;
+  if (typeof verseKey !== "string" || !VERSE_KEY_PATTERN.test(verseKey)) {
+    return fail(res, 422, "Invalid verse key.");
+  }
+
   try {
-    const verseKey = req.body.verseKey;
-    const userToken = req.user.token;
-
-    const bookmarkData = await addBookmarkToQF(verseKey, userToken);
-
-    if (bookmarkData.success) {
-      // Simulating a successful bookmark addition
-      return res.status(201).send({
-        success: true,
-        Bookmark: true,
-        bookmarkId: bookmarkData.bookmarkId,
-      });
-    } else {
-      return res
-        .status(400)
-        .send({ success: false, message: "Failed to add bookmark." });
-    }
-  } catch (err) {
-    // In case of an error
-    return res.status(500).send({
-      success: false,
-      message: "Failed to add bookmark.",
-    });
+    const { bookmarkId } = await addBookmarkToQF(verseKey, req.user.token);
+    return res.status(201).send({ success: true, bookmark: true, bookmarkId });
+  } catch (error) {
+    return handleError(res, error, "Failed to add bookmark.");
   }
 };
 
 const removeBookmark = async (req, res) => {
+  const bookmarkId = req.params.id;
+  if (!BOOKMARK_ID_PATTERN.test(bookmarkId)) {
+    return fail(res, 422, "Invalid bookmark id.");
+  }
+
   try {
-    const bookmarkId = req.params.id;
-    const userToken = req.user.token;
-
-    const bookmarkRemoved = await removeBookmarkFromQF(bookmarkId, userToken);
-
-    if (bookmarkRemoved.success) {
-      return res.status(200).send({
-        success: true,
-        message: "Bookmark removed successfully",
-      });
-    } else {
-      return res.status(400).send({
-        success: false,
-        message: "Failed to remove bookmark.",
-      });
-    }
-  } catch (err) {
-    return res.status(500).send({
-      success: false,
-      message: "Failed to remove bookmark.",
-    });
+    await removeBookmarkFromQF(bookmarkId, req.user.token);
+    return res
+      .status(200)
+      .send({ success: true, message: "Bookmark removed successfully" });
+  } catch (error) {
+    return handleError(res, error, "Failed to remove bookmark.");
   }
 };
 
-export default {
-  getAllBookmarks,
-  getBookmark,
-  addBookmark,
-  removeBookmark,
-};
+export default { getAllBookmarks, getBookmark, addBookmark, removeBookmark };
