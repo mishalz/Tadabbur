@@ -1,10 +1,10 @@
-import { refreshTokens } from "../../auth/auth.service.js";
+import { refreshTokens } from "../components/auth/auth.service.js";
 
 // Refresh slightly early so a token never expires mid-request.
 const EXPIRY_SKEW_MS = 30 * 1000;
 
 /**
- * Authentication middleware for /api/content/*.
+ * Authentication middleware: rejects requests without a logged-in session.
  *
  * Identity comes ONLY from the server-side session (created by the OAuth2
  * code exchange and stored in Postgres), never from client-supplied tokens.
@@ -14,7 +14,7 @@ const EXPIRY_SKEW_MS = 30 * 1000;
  * On success it sets:
  *   req.user = { sub, token }   // token = the session's QF access token
  */
-const extractUserSub = async (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   try {
     const session = req.session;
     const sub = session?.user?.sub;
@@ -66,4 +66,4 @@ const extractUserSub = async (req, res, next) => {
   }
 };
 
-export default extractUserSub;
+export default requireAuth;

@@ -1,30 +1,15 @@
 import NodeCache from "node-cache";
-const cache = new NodeCache({});
 
-const checkCache = (key) => {
-  const data = cache.get(key);
-  if (data) {
-    return data;
-  } else return false;
-};
+// Small in-process cache for Quran content, which never changes per user.
+// Entries expire after a day and the cache holds copies, not references.
+const cache = new NodeCache({ stdTTL: 60 * 60 * 24, checkperiod: 600 });
+
+const checkCache = (key) => cache.get(key) ?? false;
 const updateCache = (key, data) => {
   cache.set(key, data);
 };
-
 const deleteCache = (key) => {
   cache.del(key);
 };
 
-const seeCachedData = () => {
-  const keys = cache.keys();
-  keys.forEach((key) =>
-    console.log(`key: ${key}, data: ${JSON.stringify(cache.get(key))}`),
-  );
-};
-
-export default {
-  checkCache,
-  updateCache,
-  deleteCache,
-  seeCachedData,
-};
+export default { checkCache, updateCache, deleteCache };

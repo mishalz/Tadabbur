@@ -147,9 +147,9 @@ export function getQfConfig() {
   //     and remove the warning block beneath it.
   // ------------------------------------------------------------------
   const clientSecret =
-    env === "production"
+    (env === "production"
       ? process.env.QF_CLIENT_SECRET_PROD
-      : process.env.QF_CLIENT_SECRET_DEV || undefined;
+      : process.env.QF_CLIENT_SECRET_DEV) || undefined;
 
   if (clientSecret === undefined) {
     // Warn operators that the secret is absent for a confidential client.
@@ -186,32 +186,7 @@ export function getQfConfig() {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Safe serialisation helper
-//    Provides a log-safe summary that NEVER includes the client secret.
-// ---------------------------------------------------------------------------
-
-/**
- * Returns a plain object safe to log or display — credentials are redacted.
- *
- * @param {QfOAuthConfig} config
- * @returns {{ env: string, clientId: string, clientSecret: string, authBaseUrl: string, apiBaseUrl: string }}
- *
- * @example
- * console.log(toSafeLogObject(getQfOAuthConfig()));
- * // { env: 'prelive', clientId: 'abc…', clientSecret: '[REDACTED]', … }
- */
-export function toSafeLogObject(config) {
-  return {
-    env: config.env,
-    clientId: config.clientId,
-    clientSecret: "[REDACTED]", // never log the real value
-    authBaseUrl: config.authBaseUrl,
-    apiBaseUrl: config.apiBaseUrl,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// 6. resetConfigCache() — test / hot-reload helper only
+// 5. resetConfigCache() — test / hot-reload helper only
 //    Call this in unit tests to reset module state between test cases.
 //    Do NOT call it in production application code.
 // ---------------------------------------------------------------------------
