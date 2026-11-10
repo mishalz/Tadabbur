@@ -1,7 +1,20 @@
-server/node_modules/
-client/node_modules/
-
-.env
-.neon
+# dependencies
 node_modules/
-.env.local
+
+# build output
+client/build/
+coverage/
+
+# environment files (never commit secrets; use server/.env.example as a template)
+.env
+.env.*
+!.env.example
+
+# tooling
+.neon
+jest-stare/
+
+# OS / editor
+.DS_Store
+.idea/
+*.log
