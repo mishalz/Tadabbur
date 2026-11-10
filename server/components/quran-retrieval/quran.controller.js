@@ -2,6 +2,7 @@ import Cache from "../../utils/Cache.js";
 import {
   getAccessToken,
   getJsonData,
+  getVerseData,
 } from "../quran-retrieval/quran.service.js";
 
 export const getAllSurahs = async (req, res) => {
@@ -62,18 +63,12 @@ export const getSurahData = async (req, res) => {
 //to get Data for one verse
 export const getVerseDataRouteHandler = async (req, res) => {
   try {
-    const verseKey = req.params.verse_key; //retrieving the verse key from the request params
-    const url = `/verses/by_key/${verseKey}`;
-    const { data: verseData } = await getJsonData(url); //getting the verse data
-
-    if (verseData.success == false) {
-      res.status(500).send({
-        message: "An error occurred while retrieving the verse data.",
-      }); //sending an error response if success is false
-    } else {
-      res.status(200).send(verseData);
-    } //otherwise returning the result with a success
+    const result = await getVerseData(req.params.verse_key); //validates the key and fetches the verse
+    res.status(200).send({ verse: result.verse });
   } catch (err) {
+    if (err.name === "ResourceNotFoundError") {
+      return res.status(404).send({ message: err.message });
+    }
     res.status(500).send({
       message: "An error occurred while retrieving the verse data.",
     });

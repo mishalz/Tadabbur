@@ -44,7 +44,6 @@ export const loginHandler = async (req, res) => {
     const scope = process.env.QF_SCOPE;
 
     const result = buildAuthorizationUrl({ redirectUri, scope });
-    console.log("Generated authorization URL:", result.url);
 
     // MUST store PKCE parameters in session BEFORE redirecting
     // These will be validated in the callback and used in token exchange
@@ -60,20 +59,6 @@ export const loginHandler = async (req, res) => {
         return res.status(500).json({
           error: "Failed to initialize login session",
         });
-      }
-
-      // Debug: log session id and stored PKCE/state values
-      try {
-        console.log("[Auth][login] Session saved:", {
-          sessionID: req.sessionID,
-          oauthState: req.session.oauthState,
-          oauthNonce: req.session.oauthNonce,
-          codeVerifier: req.session.codeVerifier ? "[present]" : "[missing]",
-          redirectUri: req.session.redirectUri,
-          requestedScope: req.session.requestedScope,
-        });
-      } catch (e) {
-        console.error("[Auth][login] Failed to log session info:", e);
       }
 
       // Return the authorization URL for the client to redirect to
@@ -127,30 +112,18 @@ export const exchangeQfToken = async (req, res) => {
   const { code, state } = req.body;
   const { authBaseUrl, clientId, clientSecret } = getQfConfig();
 
-  // Debug: log incoming cookies and session snapshot for troubleshooting
-  try {
-    console.log("[Auth][exchange] Incoming request:", {
-      cookies: req.headers.cookie || null,
-      sessionID: req.sessionID || null,
-      sessionSnapshot: {
-        oauthState: req.session?.oauthState,
-        oauthNonce: req.session?.oauthNonce,
-        codeVerifier: req.session?.codeVerifier ? "[present]" : "[missing]",
-        requestedScope: req.session?.requestedScope,
-      },
-    });
-  } catch (e) {
-    console.error("[Auth][exchange] Failed to log request info:", e);
-  }
-
   try {
     // ─────────────────────────────────────────────────────────────────
     // 1. Validate state parameter (CSRF protection)
     // ─────────────────────────────────────────────────────────────────
     if (!validateState(state, req.session.oauthState)) {
-      console.error("State validation failed - possible CSRF attack");
-      console.log("Returned state:", state);
-      console.log("Stored state:", req.session.oauthState);
+      // Never log the state values themselves, or the cookie/session ID.
+      // These booleans are enough to diagnose the usual cause (the session
+      // cookie was not sent, so nothing was stored).
+      console.error("State validation failed - possible CSRF attack", {
+        sessionHadState: Boolean(req.session.oauthState),
+        callbackHadState: Boolean(state),
+      });
 
       return res.status(403).json({
         error: "Invalid state parameter - CSRF validation failed",
@@ -257,7 +230,7 @@ export const exchangeQfToken = async (req, res) => {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         idToken: tokenData.id_token,
-        expiresIn: tokenData.expiresIn,
+        expiresIn: tokenData.expires_in,
         tokenType: tokenData.token_type,
         scope: tokenData.scope,
         user,

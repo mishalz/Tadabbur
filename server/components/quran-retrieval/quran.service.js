@@ -55,39 +55,65 @@ export function clearToken() {
   expiresAt = 0;
 }
 
+// Verse keys look like "2:255". Validating up front also stops a crafted key
+// (e.g. "1:1?x=y" or "../chapters") from altering the upstream request path.
+export const VERSE_KEY_PATTERN = /^\d{1,3}:\d{1,3}$/;
+
+const REQUEST_TIMEOUT_MS = 15_000;
+
 export async function getJsonData(path, params = {}) {
   const { apiBaseUrl, clientId } = getQfConfig();
-  let token = await getAccessToken();
-  let response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: {
-      "x-auth-token": token,
-      "x-client-id": clientId,
-    },
-    params,
-  });
 
-  if (response.status === 401) {
-    clearToken();
-    token = await getAccessToken();
-    clientId = getQfConfig().clientId; // Refresh clientId in case config was reloaded
-    response = await fetch(`${apiBaseUrl}${path}`, {
+  const query = new URLSearchParams(params).toString();
+  const url = `${apiBaseUrl}${path}${query ? (path.includes("?") ? "&" : "?") + query : ""}`;
+
+  const request = (token) =>
+    fetch(url, {
       headers: {
         "x-auth-token": token,
         "x-client-id": clientId,
       },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+
+  let response = await request(await getAccessToken());
+
+  if (response.status === 401) {
+    // Token was rejected (e.g. expired early): fetch a fresh one and retry once.
+    clearToken();
+    response = await request(await getAccessToken());
   }
+
   if (!response.ok) {
-    throw new Error(`Content API request failed: ${response.status}`);
+    const error = new Error(`Content API request failed: ${response.status}`);
+    error.upstreamStatus = response.status;
+    // 404 stays a 404; anything else from upstream is a bad gateway for us.
+    error.statusCode = response.status === 404 ? 404 : 502;
+    throw error;
   }
 
   return { success: true, data: await response.json() };
 }
+
 export const getVerseData = async (verseKey) => {
+  if (!VERSE_KEY_PATTERN.test(String(verseKey))) {
+    throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
+  }
+
   const url = `/content/api/v4/verses/by_key/${verseKey}?fields=text_uthmani&translations=85`;
-  const { data: verseData } = await getJsonData(url); //getting the verse data
-  //if the verse key is invalide and the verse data is not found, return a response with success false
-  if (!verseData.success && !verseData.verse) {
+
+  let verseData;
+  try {
+    ({ data: verseData } = await getJsonData(url));
+  } catch (error) {
+    // The API answers 400/404 for a verse that does not exist.
+    if (error.upstreamStatus === 404 || error.upstreamStatus === 400) {
+      throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
+    }
+    throw error;
+  }
+
+  if (!verseData?.verse) {
     throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
   }
   return { success: true, verse: verseData.verse };

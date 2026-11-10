@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
+import { getFullName } from "../utils/user";
 
 export const UserContext = createContext();
 
@@ -54,8 +55,7 @@ export const UserContextProvider = ({ children }) => {
               const userData = response.data.user;
               setUser({
                 isLoggedIn: true,
-                fullname:
-                  userData.first_name + " " + userData.last_name || "User",
+                fullname: getFullName(userData),
                 sub: userData.sub,
                 email: userData.email,
                 name: userData.name,
@@ -72,9 +72,9 @@ export const UserContextProvider = ({ children }) => {
               const parsedUser = JSON.parse(storedUser);
               setUser({
                 isLoggedIn: true,
-                fullname:
-                  parsedUser.first_name + " " + parsedUser.last_name || "User",
                 ...parsedUser,
+                // computed after the spread so a stale stored "fullname" cannot override it
+                fullname: getFullName(parsedUser),
               });
             }
           }
