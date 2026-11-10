@@ -4,6 +4,7 @@ import { Spinner } from "../components/ui/spinner";
 import axios from "axios";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
+import { getFullName } from "../utils/user";
 
 /**
  * CallbackPage component handles OAuth2 redirect from Quran Foundation
@@ -67,7 +68,7 @@ function CallbackPage() {
         setUser({
           ...userData,
           isLoggedIn: true,
-          fullname: userData?.first_name + " " + userData?.last_name || "User",
+          fullname: getFullName(userData),
         });
 
         // Wait a moment before redirect to allow context to update

@@ -31,31 +31,33 @@ export const validateInput = (data) => {
 
 //to validate that the verses exist and get data required for creating a connection
 export const validateAndGetVersePair = async (fromVerse, toVerse) => {
-  const fromVerseData = await getVerseData(fromVerse);
-  const toVerseData = await getVerseData(toVerse);
+  try {
+    const [fromVerseData, toVerseData] = await Promise.all([
+      getVerseData(fromVerse),
+      getVerseData(toVerse),
+    ]);
 
-  //if both the verses exist
-  if (fromVerseData.success && toVerseData.success) {
+    const toRecord = ({ verse }) => ({
+      key: verse.verse_key,
+      arabicText: verse.text_uthmani,
+      translation: verse.translations?.[0]?.text ?? "",
+    });
+
     return {
       success: true,
-      fromVerse: {
-        key: fromVerseData.verse.verse_key,
-        arabicText: fromVerseData.verse.text_uthmani,
-        translation: fromVerseData.verse.translations[0].text,
-      },
-      toVerse: {
-        key: toVerseData.verse.verse_key,
-        arabicText: toVerseData.verse.text_uthmani,
-        translation: toVerseData.verse.translations[0].text,
-      },
+      fromVerse: toRecord(fromVerseData),
+      toVerse: toRecord(toVerseData),
     };
-  } else {
+  } catch (error) {
     //if one or both verses do not exist
-    return {
-      success: false,
-      status: 404,
-      message: "One or both ayah could not be found.",
-    };
+    if (error.name === "ResourceNotFoundError") {
+      return {
+        success: false,
+        status: 404,
+        message: "One or both ayah could not be found.",
+      };
+    }
+    throw error;
   }
 };
 
