@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Spinner } from "../components/ui/spinner";
-import axios from "axios";
-import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
 import { getFullName } from "../utils/user";
-import { apiUrl } from "@/lib/api";
+import { exchangeCode, fetchCurrentUser } from "@/lib/authApi";
+import { completeLogin } from "@/lib/oauthCallback";
 
 /**
  * CallbackPage component handles OAuth2 redirect from Quran Foundation
@@ -17,68 +16,30 @@ function CallbackPage() {
   const navigate = useNavigate();
   const { setUser } = useContext(UserContext);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // The authorization code is single-use: make sure the exchange runs once per
+  // visit even if this effect runs again.
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        const code = searchParams.get("code");
-        const state = searchParams.get("state");
-        const errorParam = searchParams.get("error");
-        const errorDescription = searchParams.get("error_description");
+    if (startedRef.current) return;
+    startedRef.current = true;
 
-        // Check for OAuth error response
-        if (errorParam) {
-          throw new Error(`OAuth Error: ${errorDescription || errorParam}`);
-        }
-
-        // Check for required parameters
-        if (!code || !state) {
-          throw new Error("Missing authorization code or state parameter");
-        }
-
-        // Exchange authorization code for tokens
-        const response = await axios.post(
-          apiUrl(`/api/auth/qf/exchange`),
-          {
-            code,
-            state,
-          },
-          { withCredentials: true },
-        );
-
-        if (!response.data.success) {
-          throw new Error(response.data.error || "Token exchange failed");
-        }
-
-        const { user: userData } = response.data;
-
-        // Store user info in context
+    completeLogin(searchParams, { exchangeCode, fetchCurrentUser })
+      .then((userData) => {
         setUser({
           ...userData,
           isLoggedIn: true,
           fullname: getFullName(userData),
         });
-
-        // Wait a moment before redirect to allow context to update
-        setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 500);
-      } catch (err) {
-        console.error("Callback error:", err);
-        setError(
-          err.response?.data?.error ||
-            err.message ||
-            "Failed to complete authentication. Please try again.",
-        );
-        setLoading(false);
-      }
-    };
-
-    handleCallback();
+        navigate("/", { replace: true });
+      })
+      .catch((err) => {
+        console.error("Callback error:", err.message);
+        setError(err.message);
+      });
   }, [searchParams, setUser, navigate]);
 
-  if (loading && !error) {
+  if (!error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Spinner />
