@@ -1,90 +1,67 @@
-import jwt from "jsonwebtoken";
+import { refreshTokens } from "../../auth/auth.service.js";
+
+// Refresh slightly early so a token never expires mid-request.
+const EXPIRY_SKEW_MS = 30 * 1000;
 
 /**
- * Middleware to extract and attach user.sub from JWT token to req.user
- * This ensures all content handlers have access to user.sub consistently
+ * Authentication middleware for /api/content/*.
+ *
+ * Identity comes ONLY from the server-side session (created by the OAuth2
+ * code exchange and stored in Redis), never from client-supplied tokens.
+ * Previously this decoded the Bearer JWT without verifying its signature, so
+ * anyone could forge a token with an arbitrary `sub` and act as that user.
+ *
+ * On success it sets:
+ *   req.user = { sub, token }   // token = the session's QF access token
  */
-const extractUserSub = (req, res, next) => {
+const extractUserSub = async (req, res, next) => {
   try {
-    // If user is already attached by auth middleware, extract sub and attach it
-    if (req.user) {
-      // If user.sub already exists, proceed
-      if (req.user.sub) {
-        return next();
-      }
-      // If user.id exists but not user.sub, try to get it from token
-      const authHeader = req.headers.authorization;
-      const userToken =
-        authHeader && authHeader.startsWith("Bearer ")
-          ? authHeader.slice(7)
-          : null;
+    const session = req.session;
+    const sub = session?.user?.sub;
 
-      req.user.token = userToken; // Attach token for downstream use if needed
-      if (userToken) {
-        const decoded = jwt.decode(userToken);
-
-        // Validate token expiration
-        if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
-          return res.status(401).json({
-            success: false,
-            message: "Token has expired",
-          });
-        }
-
-        if (decoded?.sub) {
-          req.user.sub = decoded.sub;
-          return next();
-        }
-      }
-    } else {
-      // If no user middleware, extract from token directly
-      const authHeader = req.headers.authorization;
-      const userToken =
-        authHeader && authHeader.startsWith("Bearer ")
-          ? authHeader.slice(7)
-          : null;
-
-      if (!userToken) {
-        return res.status(401).json({
-          success: false,
-          message: "Missing authentication token",
-        });
-      }
-
-      const decoded = jwt.decode(userToken);
-      // Validate token expiration
-      if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
-        return res.status(401).json({
-          success: false,
-          message: "Token has expired",
-        });
-      }
-      const userSub = decoded?.sub;
-
-      if (!userSub) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid token - missing user ID",
-        });
-      }
-
-      // Validate token expiration
-      if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
-        return res.status(401).json({
-          success: false,
-          message: "Token has expired",
-        });
-      }
-
-      // Attach user object with sub
-      req.user = { sub: userSub, token: userToken };
+    if (!session?.isLoggedIn || !sub || !session.accessToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      });
     }
 
-    next();
+    // Transparently refresh an expired/expiring access token (needed for
+    // calls that forward the token to Quran Foundation, e.g. bookmarks).
+    if (
+      session.tokenExpiresAt &&
+      session.tokenExpiresAt - EXPIRY_SKEW_MS < Date.now()
+    ) {
+      if (!session.refreshToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Session expired. Please log in again.",
+        });
+      }
+      try {
+        const tokenData = await refreshTokens(session.refreshToken);
+        session.accessToken = tokenData.access_token;
+        if (tokenData.refresh_token) {
+          session.refreshToken = tokenData.refresh_token;
+        }
+        session.expiresIn = tokenData.expires_in;
+        session.tokenExpiresAt = Date.now() + tokenData.expires_in * 1000;
+      } catch (err) {
+        console.error("[Auth] Session token refresh failed:", err.message);
+        return res.status(401).json({
+          success: false,
+          message: "Session expired. Please log in again.",
+        });
+      }
+    }
+
+    req.user = { sub, token: session.accessToken };
+    return next();
   } catch (error) {
+    console.error("[Auth] Authentication middleware error:", error.message);
     return res.status(401).json({
       success: false,
-      message: "Token verification failed",
+      message: "Authentication failed",
     });
   }
 };

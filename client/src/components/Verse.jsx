@@ -33,8 +33,8 @@ function Verse({ verse }) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${tokens.accessToken}`,
         },
+        credentials: "include",
       },
     )
       .then((res) => {
@@ -67,8 +67,8 @@ function Verse({ verse }) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${tokens.accessToken}`,
         },
+        credentials: "include",
       },
     )
       .then((res) => {
@@ -125,8 +125,8 @@ function Verse({ verse }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${tokens.accessToken}`,
           },
+          credentials: "include",
           body: JSON.stringify({
             fromVerse: data.fromVerse,
             toVerse: data.toVerse,
@@ -175,8 +175,8 @@ function Verse({ verse }) {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${tokens.accessToken}`,
           },
+          credentials: "include",
         },
       )
         .then((res) => {
@@ -224,8 +224,8 @@ function Verse({ verse }) {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${tokens.accessToken}`,
           },
+          credentials: "include",
         },
       )
         .then((res) => {
@@ -264,8 +264,8 @@ function Verse({ verse }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${tokens.accessToken}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           verseKey: verse.verse_key,
         }),
