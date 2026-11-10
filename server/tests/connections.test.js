@@ -1,247 +1,138 @@
-const request = require("supertest");
-const app = require("../index");
-const mongoose = require("mongoose");
+import { skipReason } from "./helpers/env.js";
+import { describe, test, before, after, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+import { installFakeQf } from "./helpers/fakeQf.js";
+import { startApp, resetTables, loginAs, apiClient } from "./helpers/testApp.js";
 
-//---------testing all connections retrieval -------
-describe("GET /content/conenctions", () => {
-  it("should have a status of 401 and an appropriate message since the token is missing", async () => {
-    const response = await request(app).get("/content/connections");
+const verse = (key, translation = "translation") => ({ key, arabicText: "arabic", translation });
 
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("missing")
-    );
+describe("connections", { skip: skipReason }, () => {
+  let app, svc, qf;
+
+  before(async () => {
+    qf = installFakeQf();
+    app = await startApp();
+    svc = await import("../components/content/connections/connections.service.js");
   });
-  it("should have a status of 401 and an appropriate message since the token is invalid", async () => {
-    const response = await request(app)
-      .get("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVdCJ9.eyJpZCI6IjY2ZmNmODdjNTJhMjRjNGVkMTJkMmMxOSIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTY3OTAsImV4cCI6MTcyODQ2MTU5MH0.72PdEmmo2dLerSZcgd89cdJC59MBq8esn_Taldczw0Q"
+  after(async () => {
+    qf.restore();
+    await app.close();
+  });
+  beforeEach(async () => {
+    qf.reset();
+    await resetTables(app.pool, ["connections", "verses"]);
+  });
+
+  describe("service", () => {
+    test("a user only sees their own connections (no cross-user leak)", async () => {
+      await svc.saveConnection("A", verse("1:1"), verse("1:2"), "A's note");
+      await svc.saveConnection("B", verse("1:3"), verse("1:2"), "B's note");
+
+      await assert.rejects(svc.getVerseConnections("C", "1:2"), { name: "ResourceNotFoundError" });
+
+      const a = await svc.getVerseConnections("A", "1:2");
+      assert.deepEqual(a.connections.map((c) => c.note), ["A's note"]);
+    });
+
+    test("a connection is found from either verse and in either direction", async () => {
+      await svc.saveConnection("A", verse("1:1"), verse("1:2"), "note");
+
+      assert.equal((await svc.getVerseConnections("A", "1:1")).connections.length, 1);
+      assert.equal((await svc.getVerseConnections("A", "1:2")).connections.length, 1);
+      assert.equal(await svc.checkConnectionExists("1:2", "1:1", "A"), true);
+      assert.equal(await svc.checkConnectionExists("1:1", "1:2", "B"), false);
+    });
+
+    test("the same pair cannot be connected twice, even reversed", async () => {
+      assert.equal((await svc.saveConnection("A", verse("1:1"), verse("1:2"), "x")).success, true);
+      assert.equal((await svc.saveConnection("A", verse("1:2"), verse("1:1"), "y")).success, false);
+    });
+
+    test("verse text is stored once even if the translation changes", async () => {
+      await svc.saveConnection("A", verse("1:1", "first"), verse("1:2"), "x");
+      await svc.saveConnection("A", verse("1:3", "other"), verse("1:2", "changed"), "y");
+
+      const { rows } = await app.pool.query("SELECT count(*)::int AS n FROM verses WHERE key = '1:2'");
+      assert.equal(rows[0].n, 1);
+    });
+
+    test("deleting reports whether anything was removed", async () => {
+      await svc.saveConnection("A", verse("1:1"), verse("1:2"), "x");
+      assert.equal(await svc.deleteConnectionService("1:2", "1:1", "B"), false);
+      assert.equal(await svc.deleteConnectionService("1:2", "1:1", "A"), true);
+      assert.equal(await svc.deleteConnectionService("1:2", "1:1", "A"), false);
+    });
+
+    test("input validation rejects bad keys and self-connections", () => {
+      assert.equal(svc.validateInput({ fromVerse: "x", toVerse: "1:1" }).status, 422);
+      assert.equal(svc.validateInput({ fromVerse: "1:1", toVerse: "1:1" }).status, 422);
+      assert.equal(svc.validateInput({ fromVerse: "1:1", toVerse: "1:2" }).success, true);
+    });
+
+    test("an unknown verse yields a 404 result, a missing translation does not crash", async () => {
+      qf.setHandler((url) =>
+        url.pathname.endsWith("/999:999") ? { status: 404, body: {} } : undefined,
       );
+      const missing = await svc.validateAndGetVersePair("1:1", "999:999");
+      assert.deepEqual([missing.success, missing.status], [false, 404]);
 
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("Invalid")
-    );
-  });
-
-  it("should have a success property of true and an appropriate message since the user has no connections currently", async () => {
-    const response = await request(app)
-      .get("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmFjYTQ3MGQzNTUyYTI2YThiYTU1NCIsInVzZXJuYW1lIjoiYW5udXMiLCJpYXQiOjE3Mjc4NjgwNjUsImV4cCI6MTcyODQ3Mjg2NX0.H_Bqc5A2YSD0YSLIKzufsYU2MemJZKR26FFVoKb0m4E"
+      qf.setHandler((url) =>
+        url.pathname.includes("/verses/by_key/")
+          ? { status: 200, body: { verse: { verse_key: "1:1", text_uthmani: "ar" } } }
+          : undefined,
       );
-
-    expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("no connections")
-    );
+      const pair = await svc.validateAndGetVersePair("1:1", "1:2");
+      assert.equal(pair.fromVerse.translation, "");
+    });
   });
 
-  it("should have a success property of true, status of 200 and a connections array", async () => {
-    const response = await request(app)
-      .get("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZjkzMzNlMDgxNmVmOWIxMGE5NWM1OCIsInVzZXJuYW1lIjoic2FieSIsImlhdCI6MTcyNzg2NjQ3NywiZXhwIjoxNzI4NDcxMjc3fQ.hJTQTZ4l_WTLGIb4GHEsYvP5tj8MUUsYBTfgcp_tpSw"
+  describe("HTTP API", () => {
+    test("requires a logged-in session", async () => {
+      const api = apiClient(app.base);
+      assert.equal((await api("/api/content/connections/1:1/count")).status, 401);
+      assert.equal(
+        (await api("/api/content/connections", { method: "POST", body: { fromVerse: "1:1", toVerse: "1:2" } })).status,
+        401,
       );
+    });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveProperty("connections");
-  });
-});
+    test("create, list, count and delete a connection", async () => {
+      const api = apiClient(app.base, await loginAs(app.base));
 
-//---------testing connections retrieval for a specific verse -------
-describe("GET /content/connections/:verse_key", () => {
-  it("should have a status of 404 and an appropriate message since the verse key is invalid", async () => {
-    const response = await request(app)
-      .get("/content/connections/123")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      );
+      const created = await api("/api/content/connections", {
+        method: "POST",
+        body: { fromVerse: "1:1", toVerse: "1:2", note: "hello" },
+      });
+      assert.equal(created.status, 201);
 
-    expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty("message");
-  });
-  it("should have a status of 401 and an appropriate message since the token is invalid", async () => {
-    const response = await request(app)
-      .get("/content/connections/1:2")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVdCJ9.eyJpZCI6IjY2ZmNmODdjNTJhMjRjNGVkMTJkMmMxOSIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTY3OTAsImV4cCI6MTcyODQ2MTU5MH0.72PdEmmo2dLerSZcgd89cdJC59MBq8esn_Taldczw0Q"
-      );
+      const duplicate = await api("/api/content/connections", {
+        method: "POST",
+        body: { fromVerse: "1:2", toVerse: "1:1" },
+      });
+      assert.equal(duplicate.status, 400);
 
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("Invalid")
-    );
-  });
+      const list = await (await api("/api/content/connections/1:1")).json();
+      assert.equal(list.connections.length, 1);
+      assert.equal(list.connections[0].note, "hello");
 
-  it("should have a success property of true and an appropriate message since the user has no connections currently", async () => {
-    const response = await request(app)
-      .get("/content/connections/2:78")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      );
+      assert.equal((await (await api("/api/content/connections/1:1/count")).json()).count, 1);
 
-    expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("no connections")
-    );
-  });
+      assert.equal((await api("/api/content/connections/1:1/1:2", { method: "DELETE" })).status, 200);
+      assert.equal((await api("/api/content/connections/1:1/1:2", { method: "DELETE" })).status, 404);
+    });
 
-  it("should have a success property of true, status of 200 and a connections array", async () => {
-    const response = await request(app)
-      .get("/content/connections/9:4")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZjkzMzNlMDgxNmVmOWIxMGE5NWM1OCIsInVzZXJuYW1lIjoic2FieSIsImlhdCI6MTcyNzg2NjQ3NywiZXhwIjoxNzI4NDcxMjc3fQ.hJTQTZ4l_WTLGIb4GHEsYvP5tj8MUUsYBTfgcp_tpSw"
-      );
+    test("rejects invalid input with 422 and unknown verses with 404", async () => {
+      const api = apiClient(app.base, await loginAs(app.base));
 
-    expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveProperty("connections");
-  });
-});
+      const self = await api("/api/content/connections", { method: "POST", body: { fromVerse: "1:1", toVerse: "1:1" } });
+      assert.equal(self.status, 422);
 
-//---------testing creating a note -------
-describe("POST /content/connections/", () => {
-  it("should have a status of 422 and an appropriate message since the from and to verse are not defined", async () => {
-    const response = await request(app)
-      .post("/content/connections/")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      )
-      .send({});
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("fromVerse")
-    );
-  });
-  it("should have a status of 422 and an appropriate message since the format of the from verse should be like 'surahnumber':'versenumber'", async () => {
-    const response = await request(app)
-      .post("/content/connections/")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      )
-      .send({ fromVerse: "1" });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("fromVerse")
-    );
-  });
-
-  it("should have a status of 422 and an appropriate message since the format of the to verse should be like 'surahnumber':'versenumber'", async () => {
-    const response = await request(app)
-      .post("/content/connections/")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      )
-      .send({ fromVerse: "1:2", toVerse: "9" });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("toVerse")
-    );
-  });
-
-  it("should have a status of 422 and an appropriate message since is displayed since teh note can not be empty", async () => {
-    const response = await request(app)
-      .post("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      )
-      .send({ fromVerse: "1:2", toVerse: "9:3", note: "" });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("note")
-    );
-  });
-  it("should have a status of 404 and an appropriate message since one or both verse keys given in the body are invalid", async () => {
-    const response = await request(app)
-      .post("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmQwNWQzZWI0NWY3MTE1MTk4NWRjOCIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTgxNDQsImV4cCI6MTcyODQ2Mjk0NH0.342b8Cm0MqJP1CWaJLFw4F_sjK5rkpaDwqaCNTxuMN0"
-      )
-      .send({ fromVerse: "1:3232", toVerse: "9:3", note: "sample note" });
-
-    expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("ayah")
-    );
-  });
-
-  it("should have a status of 401 and an appropriate message since the token is invalid", async () => {
-    const response = await request(app)
-      .post("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVdCJ9.eyJpZCI6IjY2ZmNmODdjNTJhMjRjNGVkMTJkMmMxOSIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTY3OTAsImV4cCI6MTcyODQ2MTU5MH0.72PdEmmo2dLerSZcgd89cdJC59MBq8esn_Taldczw0Q"
-      );
-
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("Invalid")
-    );
-  });
-  it("should have a status of 401 and an appropriate message since the token is missing", async () => {
-    const response = await request(app).post("/content/connections");
-
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("missing")
-    );
-  });
-
-  it("should have a success property of false, status of 400 and a message saying that the connection already exists", async () => {
-    const response = await request(app)
-      .post("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmNmODdjNTJhMjRjNGVkMTJkMmMxOSIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTY3OTAsImV4cCI6MTcyODQ2MTU5MH0.72PdEmmo2dLerSZcgd89cdJC59MBq8esn_Taldczw0Q"
-      )
-      .send({ fromVerse: "7:54", toVerse: "9:3", note: "sample note" });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toHaveProperty("success", false);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("connection exists")
-    );
-  });
-  it("should have a success property of true, status of 201 and connection should be created successfully", async () => {
-    const response = await request(app)
-      .post("/content/connections")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZmNmODdjNTJhMjRjNGVkMTJkMmMxOSIsInVzZXJuYW1lIjoienVsZmkiLCJpYXQiOjE3Mjc4NTY3OTAsImV4cCI6MTcyODQ2MTU5MH0.72PdEmmo2dLerSZcgd89cdJC59MBq8esn_Taldczw0Q"
-      )
-      .send({ fromVerse: "7:8", toVerse: "9:24", note: "sample note" });
-
-    expect(response.statusCode).toBe(201);
-    expect(response.body).toHaveProperty("success", true);
+      qf.setHandler((url) => (url.pathname.endsWith("/999:999") ? { status: 404, body: {} } : undefined));
+      const unknown = await api("/api/content/connections", {
+        method: "POST",
+        body: { fromVerse: "1:1", toVerse: "999:999" },
+      });
+      assert.equal(unknown.status, 404);
+    });
   });
 });
