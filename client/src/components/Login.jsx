@@ -1,7 +1,8 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { UserContext } from "../context/UserContext";
 import axios from "axios";
 import { Spinner } from "./ui/spinner";
+import { apiUrl } from "@/lib/api";
 
 function Login() {
   const { user, setUser } = useContext(UserContext);
@@ -19,7 +20,7 @@ function Login() {
 
       // Request authorization URL from backend
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        apiUrl(`/api/auth/login`),
         { withCredentials: true },
       );
 
@@ -43,7 +44,7 @@ function Login() {
       setError(null);
 
       // Call backend logout endpoint
-      await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
+      await axios.get(apiUrl(`/api/auth/logout`), {
         withCredentials: true,
       });
 

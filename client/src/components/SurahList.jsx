@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SurahItem from "./SurahItem";
-// import "../styling/SurahList.css";
-import { LoaderCircle, MessageCircleWarning } from "lucide-react";
+import { MessageCircleWarning } from "lucide-react";
 import { Spinner } from "./ui/spinner";
+import { apiUrl } from "@/lib/api";
 
 function SurahList() {
   const [surahlist, setSurahList] = useState([]);
@@ -14,15 +14,7 @@ function SurahList() {
   useEffect(() => {
     setLoading(true);
     axios
-      .get(
-        `${import.meta.env.VITE_API_URL}/api/quran/surahs`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        },
-        { withCredentials: true },
-      )
+      .get(apiUrl("/api/quran/surahs"))
       .then((res) => {
         if (res.status === 200) {
           setError(null);
@@ -43,7 +35,7 @@ function SurahList() {
     <div className="w-full">
       <h1>Surahs</h1>
       <hr />
-      {error && surahlist.length == 0 && (
+      {error && surahlist.length === 0 && (
         <div className="flex items-center gap-2 bg-destructive/20  text-destructive h-full rounded mt-5">
           <span>
             <MessageCircleWarning className="w-4 h-4 text-red-400" />
@@ -61,7 +53,7 @@ function SurahList() {
           </div>
         ) : (
           surahlist &&
-          surahlist.length != 0 &&
+          surahlist.length !== 0 &&
           surahlist.map((surah) => (
             <SurahItem
               key={surah.id}

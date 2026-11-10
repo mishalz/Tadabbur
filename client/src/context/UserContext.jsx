@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import { getFullName } from "../utils/user";
+import { apiUrl } from "@/lib/api";
 
 export const UserContext = createContext();
 
@@ -30,7 +31,7 @@ export const UserContextProvider = ({ children }) => {
     const initializeSession = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/auth/me`,
+          apiUrl(`/api/auth/me`),
           { withCredentials: true },
         );
 

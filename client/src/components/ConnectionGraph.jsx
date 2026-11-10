@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   forceSimulation,
   forceLink,
   forceManyBody,
   forceCenter,
 } from "d3-force";
-import { UserContext } from "@/context/UserContext";
 import { Spinner } from "./ui/spinner";
+import { apiUrl } from "@/lib/api";
 
 function ConnectionGraph({ connections, setDataToFetch }) {
   const svgRef = useRef(null);
@@ -28,7 +28,7 @@ function ConnectionGraph({ connections, setDataToFetch }) {
       setDeleteNotification(null);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/content/connections/${fromVerseKey}/${toVerseKey}`,
+        apiUrl(`/api/content/connections/${fromVerseKey}/${toVerseKey}`),
         {
           method: "DELETE",
           headers: {
