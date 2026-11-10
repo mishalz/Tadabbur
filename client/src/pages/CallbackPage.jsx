@@ -14,7 +14,7 @@ import { getFullName } from "../utils/user";
 function CallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser, setTokens } = useContext(UserContext);
+  const { setUser } = useContext(UserContext);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -50,19 +50,7 @@ function CallbackPage() {
           throw new Error(response.data.error || "Token exchange failed");
         }
 
-        const {
-          accessToken,
-          refreshToken,
-          idToken,
-          user: userData,
-        } = response.data;
-
-        // Store tokens in context
-        setTokens({
-          accessToken,
-          refreshToken,
-          idToken,
-        });
+        const { user: userData } = response.data;
 
         // Store user info in context
         setUser({
@@ -87,7 +75,7 @@ function CallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, setUser, setTokens, navigate]);
+  }, [searchParams, setUser, navigate]);
 
   if (loading && !error) {
     return (

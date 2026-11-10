@@ -21,7 +21,6 @@ function ConnectionGraph({ connections, setDataToFetch }) {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [deleteNotification, setDeleteNotification] = useState(null);
-  const { tokens } = useContext(UserContext);
 
   const deleteConnectionHandler = async (fromVerseKey, toVerseKey) => {
     try {

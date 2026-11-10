@@ -11,7 +11,7 @@ const BookmarksPage = () => {
   const [error, setError] = useState(null);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [endCursor, setEndCursor] = useState(null);
-  const { user, setUser, tokens, setTokens } = useContext(UserContext);
+  const { user, setUser } = useContext(UserContext);
 
   const fetchBookmarks = async (cursor = null, isLoadMore = false) => {
     try {
@@ -42,7 +42,6 @@ const BookmarksPage = () => {
       if (response.status === 401) {
         setError("You are not authenticated. Please log in.");
         setUser({ isLoggedIn: false });
-        setTokens({ accessToken: null, refreshToken: null, idToken: null });
         return;
       }
 
