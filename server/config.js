@@ -26,8 +26,15 @@ if (missing.length > 0) {
 const SAME_SITE_VALUES = ["lax", "strict", "none"];
 
 const resolveSameSite = () => {
-  const override = (process.env.COOKIE_SAMESITE || "").toLowerCase();
+  const raw = process.env.COOKIE_SAMESITE;
+  const override = (raw || "").trim().toLowerCase();
   if (SAME_SITE_VALUES.includes(override)) return override;
+
+  if (raw !== undefined && raw.trim() !== "") {
+    console.warn(
+      `[config] Ignoring invalid COOKIE_SAMESITE "${raw}" (expected ${SAME_SITE_VALUES.join(", ")}).`,
+    );
+  }
   // "none" is only needed when the API is called cross-site (and needs Secure).
   return isProduction ? "none" : "lax";
 };

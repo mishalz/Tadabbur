@@ -36,5 +36,14 @@ describe("config", () => {
     assert.deepEqual([parse({ NODE_ENV: "production" }).sameSite, parse({ NODE_ENV: "production" }).secure], ["none", true]);
     assert.equal(parse({ NODE_ENV: "production", COOKIE_SAMESITE: "lax" }).sameSite, "lax");
     assert.equal(parse({ NODE_ENV: "production", COOKIE_SAMESITE: "bogus" }).sameSite, "none");
+    // stray whitespace/case from a dashboard is tolerated
+    assert.equal(parse({ NODE_ENV: "production", COOKIE_SAMESITE: " Lax " }).sameSite, "lax");
+  });
+});
+
+describe("config warnings", () => {
+  test("an invalid COOKIE_SAMESITE is reported instead of silently ignored", () => {
+    const result = loadConfig({ ...valid, COOKIE_SAMESITE: "bogus" });
+    assert.match(result.stderr, /Ignoring invalid COOKIE_SAMESITE "bogus"/);
   });
 });
