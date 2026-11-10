@@ -37,56 +37,53 @@ app.use(bodyParser.json());
 // ─────────────────────────────────────────────────────────────────
 // Session Middleware with Redis Store
 // ─────────────────────────────────────────────────────────────────
-// Initialize Redis client (prefer REDIS_URL; fallback to host/port)
+// Initialize Redis client (prefer REDIS_URL; fallback to host/port).
+// reconnectStrategy retries forever with capped exponential backoff, so a slow
+// or sleeping Redis instance never takes the whole API down.
+// disableOfflineQueue makes commands fail fast while disconnected instead of
+// hanging requests until the client reconnects.
+const reconnectStrategy = (retries) => Math.min(500 * 2 ** retries, 15000);
+
 const redisOptions = process.env.REDIS_URL
-  ? { url: process.env.REDIS_URL }
+  ? {
+      url: process.env.REDIS_URL,
+      socket: { reconnectStrategy },
+      disableOfflineQueue: true,
+    }
   : {
       username: "default",
       password: process.env.REDIS_PASSWORD,
       socket: {
         host: process.env.REDIS_HOST || "127.0.0.1",
         port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379,
+        reconnectStrategy,
       },
+      disableOfflineQueue: true,
     };
 
 const redisClient = createClient(redisOptions);
 
 redisClient.on("error", (err) => {
-  console.error("[Redis] Connection Error:", err.message);
+  console.error("[Redis] Error:", err.message);
 });
+redisClient.on("ready", () => console.log("[Redis] Ready"));
+redisClient.on("reconnecting", () => console.log("[Redis] Reconnecting..."));
 
-redisClient.on("connect", () => {
-  console.log("[Redis] Connected (socket established)");
+// Connect in the background: the server starts listening immediately and
+// sessions start working as soon as Redis is ready. A failure is logged,
+// never fatal.
+redisClient
+  .connect()
+  .catch((err) => console.error("[Redis] Initial connect failed:", err.message));
+
+// Health check (used by Render / uptime monitors). Does not require a session.
+app.get("/healthz", (_, res) => {
+  const redisReady = redisClient.isReady;
+  res.status(redisReady ? 200 : 503).json({
+    status: redisReady ? "ok" : "degraded",
+    redis: redisReady ? "up" : "down",
+  });
 });
-
-// Try connecting with retries and exponential backoff
-async function connectRedisWithRetry(client, maxAttempts = 5) {
-  let attempt = 0;
-  while (attempt < maxAttempts) {
-    try {
-      await client.connect();
-      console.log(
-        "[Redis] Connected to",
-        process.env.REDIS_URL ||
-          `${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
-      );
-      return;
-    } catch (err) {
-      attempt += 1;
-      const delay = Math.min(1000 * 2 ** attempt, 30000);
-      console.error(`[Redis] Connect attempt ${attempt} failed:`, err.message);
-      if (attempt >= maxAttempts) {
-        console.error("[Redis] Max connect attempts reached. Exiting.");
-        process.exit(1);
-      }
-      console.log(`[Redis] Retrying in ${delay}ms...`);
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((res) => setTimeout(res, delay));
-    }
-  }
-}
-
-await connectRedisWithRetry(redisClient);
 
 // Session configuration
 function resolveSameSite() {
@@ -143,9 +140,17 @@ app.use((_, res) => {
   });
 });
 
-//a general error handler for other cases such as incorrect JSON in the req body
-app.use((err, _, res) => {
-  res.status(500).send({ success: false, message: err.message });
+// General error handler. Express only treats a function as an error handler
+// when it takes exactly four arguments (err, req, res, next).
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error("[Server] Unhandled error:", err.message);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).send({
+    success: false,
+    message:
+      status === 400 ? "Invalid request body" : "Internal server error",
+  });
 });
 
 //starting the server
