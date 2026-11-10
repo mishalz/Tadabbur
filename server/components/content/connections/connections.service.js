@@ -143,7 +143,7 @@ export const getVerseConnections = async (userSub, verseKey) => {
 
   const result = getFormattedConnections(rows);
 
-  if (result.length == 0) {
+  if (result.length === 0) {
     //if there are no connections
     throw new ResourceNotFoundError(
       "There are no connections to display for this verse.",

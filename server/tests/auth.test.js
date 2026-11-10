@@ -1,188 +1,144 @@
-const request = require("supertest");
-const app = require("../index");
-const mongoose = require("mongoose");
+import { skipReason } from "./helpers/env.js";
+import { describe, test, before, after, beforeEach, mock } from "node:test";
+import assert from "node:assert/strict";
+import axios from "axios";
+import { installFakeQf } from "./helpers/fakeQf.js";
+import { startApp, resetTables, loginAs, apiClient } from "./helpers/testApp.js";
 
-//---- testing user registration -----
-describe("POST /auth/register", () => {
-  it("should have a status of 422 and an appropriate message since the email is not valid", async () => {
-    const response = await request(app)
-      .post("/auth/register")
-      .send({ email: "testuser", username: "sample", password: "password123" });
+describe("auth", { skip: skipReason }, () => {
+  let app, qf;
 
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("email")
-    ); // Check if the message field is used and contains the word email
+  before(async () => {
+    qf = installFakeQf();
+    app = await startApp();
+  });
+  after(async () => {
+    qf.restore();
+    await app.close();
+  });
+  beforeEach(async () => {
+    qf.reset();
+    await resetTables(app.pool);
   });
 
-  it("should return 422 and an appropriate message since password and email is missing", async () => {
-    const response = await request(app)
-      .post("/auth/register")
-      .send({ username: "" });
+  test("login returns an authorization URL with PKCE, state and nonce, and an httpOnly session cookie", async () => {
+    const response = await fetch(`${app.base}/api/auth/login`);
+    const { authUrl } = await response.json();
+    const params = new URL(authUrl).searchParams;
 
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("username")
+    assert.equal(params.get("response_type"), "code");
+    assert.equal(params.get("code_challenge_method"), "S256");
+    assert.equal(params.get("redirect_uri"), "http://localhost:5173/callback");
+    assert.equal(params.get("client_id"), "test-client-id");
+    for (const name of ["state", "nonce", "code_challenge"]) assert.ok(params.get(name), `${name} present`);
+
+    const cookie = response.headers.get("set-cookie");
+    assert.match(cookie, /^tadabbur-session=/);
+    assert.match(cookie, /HttpOnly/i);
+  });
+
+  test("a full login makes the user available from /me and the content routes, and logout ends the session", async () => {
+    const cookie = await loginAs(app.base, { first_name: "Ada", last_name: "Lovelace" });
+    const api = apiClient(app.base, cookie);
+
+    const me = await (await api("/api/auth/me")).json();
+    assert.equal(me.user.sub, "user-1");
+    assert.equal(me.user.first_name, "Ada");
+
+    // authenticated: 404 means "no connections", not 401
+    assert.equal((await api("/api/content/connections/1:1/count")).status, 404);
+
+    assert.equal((await api("/api/auth/logout")).status, 200);
+    assert.equal((await api("/api/auth/me")).status, 401);
+    assert.equal((await api("/api/content/connections/1:1/count")).status, 401);
+  });
+
+  test("/me without a session is 401", async () => {
+    assert.equal((await apiClient(app.base)("/api/auth/me")).status, 401);
+  });
+
+  test("a wrong state is rejected (CSRF) and neither the state nor the cookie is logged", async () => {
+    const login = await fetch(`${app.base}/api/auth/login`);
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+
+    const logged = [];
+    const capture = (...args) => logged.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
+    const errorMock = mock.method(console, "error", capture);
+    const logMock = mock.method(console, "log", capture);
+    let response;
+    try {
+      response = await fetch(`${app.base}/api/auth/qf/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie },
+        body: JSON.stringify({ code: "code", state: "ATTACKER-STATE-123" }),
+      });
+    } finally {
+      errorMock.mock.restore();
+      logMock.mock.restore();
+    }
+
+    assert.equal(response.status, 403);
+    const output = logged.join("\n");
+    assert.ok(output.includes("State validation failed"));
+    assert.ok(!output.includes("ATTACKER-STATE-123"));
+    assert.ok(!output.includes(cookie.split("=")[1]));
+  });
+
+  test("an id_token with the wrong nonce is rejected", async () => {
+    const login = await fetch(`${app.base}/api/auth/login`);
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+    const state = new URL((await login.json()).authUrl).searchParams.get("state");
+
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    const post = mock.method(axios, "post", async () => ({
+      data: { access_token: "t", expires_in: 3600, id_token: `${b64({})}.${b64({ sub: "x", nonce: "wrong" })}.s` },
+    }));
+    try {
+      const response = await fetch(`${app.base}/api/auth/qf/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie },
+        body: JSON.stringify({ code: "code", state }),
+      });
+      assert.equal(response.status, 403);
+    } finally {
+      post.mock.restore();
+    }
+  });
+
+  test("an expired access token is refreshed server-side on the next content request", async () => {
+    const cookie = await loginAs(app.base);
+    await app.pool.query(
+      `UPDATE session SET sess = jsonb_set(sess::jsonb, '{tokenExpiresAt}', '1'::jsonb)::json`,
     );
+
+    const refresh = mock.method(axios, "post", async () => ({
+      data: { access_token: "refreshed-token", expires_in: 3600 },
+    }));
+    qf.setHandler((url) => (url.pathname.startsWith("/auth/v1/bookmarks") ? { status: 200, body: { data: [] } } : undefined));
+    try {
+      const response = await apiClient(app.base, cookie)("/api/content/bookmarks");
+      assert.equal(response.status, 200);
+      assert.equal(refresh.mock.callCount(), 1);
+      const upstream = qf.calls.find((c) => c.url.pathname.startsWith("/auth/v1/bookmarks"));
+      assert.equal(upstream.headers["x-auth-token"], "refreshed-token");
+    } finally {
+      refresh.mock.restore();
+    }
   });
 
-  it("should have a status of 422 and an appropriate message  since the username is missing", async () => {
-    const response = await request(app)
-      .post("/auth/register")
-      .send({ email: "testuser", password: "password123" });
+  test("when the refresh fails the user gets 401", async () => {
+    const cookie = await loginAs(app.base);
+    await app.pool.query(`UPDATE session SET sess = jsonb_set(sess::jsonb, '{tokenExpiresAt}', '1'::jsonb)::json`);
 
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("username")
-    );
-  });
-
-  it("should return 404 if the url has an error", async () => {
-    const response = await request(app)
-      .post("/auth/registersd")
-      .send({ username: "'" });
-
-    expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty("message");
-  });
-
-  it("should return 409 since email is already registered", async () => {
-    const response = await request(app).post("/auth/register").send({
-      email: "mishal@gmail.com",
-      username: "mishal",
-      password: "mishal",
+    const refresh = mock.method(axios, "post", async () => {
+      throw new Error("invalid_grant");
     });
-
-    expect(response.statusCode).toBe(409);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("registered")
-    );
-  });
-
-  it("should return 201 and register user", async () => {
-    const response = await request(app).post("/auth/register").send({
-      email: "zulfiqar01@gmail.com",
-      username: "zulfiqar01",
-      password: "zulfiqar01",
-    });
-
-    expect(response.statusCode).toBe(201);
-    expect(response.body).toHaveProperty("success", true);
-  });
-});
-//---- testing user login -----
-describe("POST /auth/login", () => {
-  it("should have a status of 422 and an appropriate message since the email is not valid", async () => {
-    const response = await request(app)
-      .post("/auth/login")
-      .send({ email: "testuser", password: "password123" });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("email")
-    ); // Check if the message field is used and contains the word email
-  });
-
-  it("should return 422 and an appropriate message since password is missing", async () => {
-    const response = await request(app)
-      .post("/auth/login")
-      .send({ email: "zulfi@gmail.com" });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("password")
-    );
-  });
-
-  it("should have a status of 422 and an appropriate message since the email is missing", async () => {
-    const response = await request(app)
-      .post("/auth/login")
-      .send({ password: "password123" });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("email")
-    );
-  });
-
-  it("should return 404 if the url has an error", async () => {
-    const response = await request(app)
-      .post("/auth/login/3132")
-      .send({ username: "'" });
-
-    expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty("message");
-  });
-
-  it("should return 409 and an appropriate message since email is not registered", async () => {
-    const response = await request(app).post("/auth/login").send({
-      email: "wow@gmail.com",
-      password: "wow",
-    });
-
-    expect(response.statusCode).toBe(409);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("registered")
-    );
-  });
-
-  it("should return 401 since the password is incorrect", async () => {
-    const response = await request(app).post("/auth/login").send({
-      email: "ulfi@gmail.com",
-      password: "zulfiyes",
-    });
-
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("password is incorrect")
-    );
-  });
-});
-//---- testing user valid route -----
-describe("POST /auth/validate", () => {
-  it("should return 200 since the token is attached and valid", async () => {
-    const response = await request(app)
-      .get("/auth/validate")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZjkzMzNlMDgxNmVmOWIxMGE5NWM1OCIsInVzZXJuYW1lIjoic2FieSIsImlhdCI6MTcyNzYxMTA2NCwiZXhwIjoxNzI4MjE1ODY0fQ.xU0qowOXhPp3wxEfzuTiacN9p900A5c9uOsVn8Iuaqw"
-      );
-    expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveProperty("success", true);
-    expect(response.body).toHaveProperty("user");
-  });
-  it("should return 401 since the token is missing", async () => {
-    const response = await request(app).get("/auth/validate");
-
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty("success", false);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("token is missing")
-    );
-  });
-  it("should return 401 since the token is invalid", async () => {
-    const response = await request(app)
-      .get("/auth/validate")
-      .set(
-        "Authorization",
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVsCJ9.eyJpZCI6IjY2ZjkzMzNlMDgxNmVmOWIxMGE5NWM1OCIsInVzZXJuYW1lIjoic2FieSIsImlhdCI6MTcyNzYxMTA2NCwiZXhwIjoxNzI4MjE1ODY0fQ.xU0qowOXhPp3wxEfzuTiacN9p900A5c9uOsVn8Iuaqw"
-      );
-
-    expect(response.statusCode).toBe(401);
-    expect(response.body).toHaveProperty("success", false);
-    expect(response.body).toHaveProperty(
-      "message",
-      expect.stringMatching("token is invalid")
-    );
+    const errorMock = mock.method(console, "error", () => {});
+    try {
+      assert.equal((await apiClient(app.base, cookie)("/api/content/bookmarks")).status, 401);
+    } finally {
+      refresh.mock.restore();
+      errorMock.mock.restore();
+    }
   });
 });

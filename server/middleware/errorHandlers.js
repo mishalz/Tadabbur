@@ -8,7 +8,6 @@ export const notFoundHandler = (_req, res) => {
 
 // Express only treats a function as an error handler when it takes exactly
 // four arguments (err, req, res, next).
-// eslint-disable-next-line no-unused-vars
 export const errorHandler = (err, _req, res, _next) => {
   console.error("[Server] Unhandled error:", err.message);
   const status = err.status || err.statusCode || 500;
