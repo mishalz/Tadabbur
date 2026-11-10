@@ -2,7 +2,7 @@
 
 A full-stack web application for the study and contemplation of the Holy Quran.
 
-Tadabbur provides a focused digital study space where users can explore verses and visualise meaningful semantic or syntactic relationships between them. Its distinguishing feature is the use of a graph-oriented NoSQL data model to create, store, and visualise connections across Quranic verses.
+Tadabbur provides a focused digital study space where users can explore verses and visualise meaningful semantic or syntactic relationships between them. Its distinguishing feature is the ability to create, store, and visualise your own connections between Quranic verses.
 
 **Live application:** [Open Tadabbur](https://benevolent-rolypoly-b74a4a.netlify.app)
 
@@ -12,189 +12,134 @@ The flow of meaning in the Quran is not conventionally unidirectional, rather mu
 Due to this richness of the flow of meaning, the study of the Quran requires keeping track of the different connections that one comes across within a Surah, between succeeding and preceding Surahs and the recurrence elsewhere in the Quran. 
 Tadabbur is designed to make those relationships easier to capture and explore through an interactive web experience.
 
-The application combines a modern React client with a backend service and graph-based data storage to support connected Quranic study rather than isolated verse reading.
+The application combines a React client with an Express API and a Postgres database to support connected Quranic study rather than isolated verse reading.
 
 ## Key Features
 
-- Dedicated Quran study space.
-- Interactive visualisation of relationships between verses.
-- Support for semantic and syntactic verse connections.
-- Graph-based storage model for flexible, connected data.
-- Modern responsive interface built with React and Tailwind CSS.
-- Client-side routing for a smoother single-page application experience.
-- OAuth setup documentation for authenticated user flows.
+- Browse every surah and read its verses (Arabic text with translation).
+- Create notes that connect any two verses, and see the connections as an interactive graph.
+- Bookmark verses (stored in your Quran Foundation account).
+- Log in with Quran Foundation (OAuth2 + PKCE); the tokens never reach the browser.
 
 ## Tech Stack
 
-### Frontend
-
-- React 18
-- Vite
-- React Router
-- Tailwind CSS
-- Radix UI and shadcn/ui-style components
-- D3 Force for graph visualisation
-- Axios for HTTP requests
-- Lucide React icons
-- Vitest and Testing Library
-
-### Backend
-
-- Node.js server application
-- API layer housed in the `server` directory
-- Graph-oriented NoSQL data model for verse relationships
-- OAuth-based authentication support
-
-> See [`OAUTH2_SETUP.md`](./OAUTH2_SETUP.md) for authentication configuration and [`QUICKSTART.md`](./QUICKSTART.md) for additional project-specific setup guidance.
+| Layer | Technology |
+| --- | --- |
+| Client | React 18, Vite, React Router, Tailwind CSS 4, D3 Force (graph), Axios |
+| API | Node.js (>= 22), Express 4, `express-session`, Joi, Helmet, `express-rate-limit` |
+| Data | Postgres (any provider; Neon in production) via `pg`, also used for sessions (`connect-pg-simple`) |
+| Quran content & login | [Quran Foundation](https://api-docs.quran.foundation) APIs and OAuth2 |
+| Tests / CI | `node:test` (API), Vitest (client), ESLint, GitHub Actions |
+| Hosting | Netlify (client), Render (API), Neon (database) |
 
 ## Project Structure
 
 ```text
 Tadabbur/
-├── client/                 # React + Vite frontend
-│   ├── public/             # Static assets
-│   ├── src/                # Application source code
-│   ├── package.json        # Frontend scripts and dependencies
-│   ├── tailwind.config.js  # Tailwind configuration
-│   └── vite.config.js      # Vite configuration
-├── server/                 # Backend API and graph data services
-├── OAUTH2_SETUP.md         # OAuth configuration guide
-├── QUICKSTART.md           # Setup and usage guide
-└── .gitignore
+├── client/                    # React + Vite frontend
+│   ├── public/_redirects      # Netlify: proxies /api/* to the API, SPA fallback
+│   └── src/                   # components, pages, context, lib (api helper), utils
+├── server/                    # Express API
+│   ├── index.js               # process entry point (listen, graceful shutdown)
+│   ├── app.js                 # builds the Express app (no listen; used by tests)
+│   ├── config.js              # validated environment configuration
+│   ├── qfConfig.js            # Quran Foundation endpoints and credentials
+│   ├── db/                    # pg pool and idempotent schema
+│   ├── middleware/            # requireAuth, rate limiters, error handlers
+│   ├── components/            # auth, content (connections, bookmarks), quran-retrieval
+│   └── tests/                 # integration tests
+├── docs/authentication.md     # how login and sessions work
+└── .github/workflows/ci.yml   # lint, test and build on every PR
 ```
 
 ## Local Development
 
 ### Prerequisites
 
-Install the following before starting:
+- Node.js 22 or later and npm
+- A Postgres database (a free [Neon](https://neon.com) project works, or a local install)
+- Quran Foundation API credentials ([request access](https://api-docs.quran.foundation/request-access)); register `http://localhost:5173/callback` as a redirect URI
 
-- Node.js 18 or later
-- npm
-- A configured graph database instance for backend data
-- OAuth credentials, if authentication is enabled
-
-### 1. Clone the repository
+### 1. Install
 
 ```bash
-git clone [https://github.com/mishalz/Tadabbur.git](https://github.com/mishalz/Tadabbur.git)
+git clone https://github.com/mishalz/Tadabbur.git
 cd Tadabbur
+(cd server && npm install)
+(cd client && npm install)
 ```
 
-### 2. Install frontend dependencies
+### 2. Configure the server
 
 ```bash
-cd client
-npm install
+cp server/.env.example server/.env
 ```
 
-### 3. Configure environment variables
+Fill in `DATABASE_URL`, `SESSION_SECRET_KEY` (any long random string) and the `QF_*` credentials. The server refuses to start if required variables are missing. Tables are created automatically on first start. Never commit `.env` files.
 
-Create an environment file in the appropriate client and/or server directory based on the variables used by your local configuration.
+The client needs no configuration locally: Vite proxies `/api` to `http://localhost:8000`.
+
+### 3. Run
 
 ```bash
-cp .env.example .env
+cd server && npm run dev      # API on http://localhost:8000
+cd client && npm run dev      # app on http://localhost:5173
 ```
 
-Add the required API endpoint, graph-database credentials, session settings, and OAuth credentials. Do not commit `.env` files or private keys.
+## Scripts
 
-For OAuth-specific guidance, see [`OAUTH2_SETUP.md`](./OAUTH2_SETUP.md).
+| Where | Command | What it does |
+| --- | --- | --- |
+| `server` | `npm run dev` / `npm start` | API with auto-reload / API |
+| `server` | `npm run lint` | ESLint |
+| `server` | `npm test` | Integration tests (see below) |
+| `client` | `npm run dev` / `build` / `preview` | Vite dev server / production build / serve the build |
+| `client` | `npm run lint` / `npm test` | ESLint / Vitest |
 
-### 4. Start the frontend
+### Running the API tests
+
+The API tests run the real app against a real Postgres, with Quran Foundation replaced by an in-process fake. They **truncate tables**, so they only use `TEST_DATABASE_URL` (never `DATABASE_URL`) and refuse non-local hosts:
 
 ```bash
-cd client
-npm run dev
-```
-
-Vite will provide a local development URL, usually:
-
-```text
-http://localhost:5173
-```
-
-### 5. Start the backend
-
-In a separate terminal, install and run the server dependencies:
-
-```bash
+createdb tadabbur_test
 cd server
-npm install
-npm run dev
+TEST_DATABASE_URL=postgres://localhost:5432/tadabbur_test npm test
 ```
 
-If the server uses a different script name, inspect `server/package.json` and run the relevant development command.
-
-## Available Frontend Scripts
-
-Run these commands from the `client` directory:
-
-```bash
-npm run dev
-```
-
-Starts the Vite development server.
-
-```bash
-npm run build
-```
-
-Creates an optimized production build.
-
-```bash
-npm run preview
-```
-
-Serves the production build locally for verification.
-
-```bash
-npm test
-```
-
-Runs the frontend test suite with Vitest.
+Without `TEST_DATABASE_URL`, the database tests are skipped.
 
 ## Data Model
 
-Tadabbur uses a graph-based approach because verse relationships are naturally connected rather than strictly hierarchical.
+Connections are stored relationally:
 
-At a high level:
+- `verses`: the verse key (`2:255`) with its Arabic text and translation.
+- `connections`: a user's note linking two verses. Connections are direction-independent: a unique index on `(user, least(a, b), greatest(a, b))` allows one connection per pair per user.
+- `session`: login sessions.
 
-- **Nodes** represent Quranic verses or study entities.
-- **Edges** represent a relationship between nodes.
-- **Relationship metadata** can describe the connection type, such as semantic similarity, linguistic structure, topic, or reference.
-- **Graph visualisation** helps users navigate clusters of related verses and discover connections that would be difficult to see in a linear interface.
+The graph view is built in the client from a verse's connections.
 
 ## Deployment
 
-The frontend is deployed on Netlify:
-
-- [Live study space](https://benevolent-rolypoly-b74a4a.netlify.app)
-
-For a Netlify deployment, configure:
-
-- The frontend working directory as `client`
-- The build command as `npm run build`
-- The publish directory as `client/dist`
-- Required environment variables in Netlify project settings
-
-Ensure the backend API URL is supplied through environment configuration and that CORS permits requests from the deployed Netlify domain.
+| Piece | Setting |
+| --- | --- |
+| **Netlify** (client) | Base directory `client`, build command `npm run build`, publish directory `client/build`, env var `VITE_API_URL` **empty**. `client/public/_redirects` proxies `/api/*` to the API so the session cookie is first-party. |
+| **Render** (API) | Root directory `server`, build `npm install`, start `npm start`. Environment: `NODE_ENV=production`, `DATABASE_URL`, `SESSION_SECRET_KEY`, `APP_BASE_URL` (the Netlify URL), `COOKIE_SAMESITE=lax`, `QF_ENV`, `QF_CLIENT_ID_*`, `QF_CLIENT_SECRET_*`, `QF_SCOPE`. |
+| **Quran Foundation** | Register `<APP_BASE_URL>/callback` as the redirect URI. |
+| **Keep-alive** | Free Render services sleep when idle. Point an uptime monitor at `GET /ping` (no database access) every ~10 minutes. `GET /healthz` also checks the database; avoid polling it frequently so an auto-suspended free-tier database can sleep. |
 
 ## Security Notes
 
-- Keep OAuth client secrets, database credentials, session secrets, and API keys outside source control.
-- Store production secrets in your deployment provider’s environment-variable settings.
+- Secrets live in environment variables only; `.env` is git-ignored.
+- OAuth tokens are kept in the server-side session and never sent to the browser; the session cookie is `httpOnly` and `secure` in production.
+- Content routes require a logged-in session; every connection query is scoped to the user.
+- The API sets security headers (Helmet), limits request size, and rate-limits `/api` (and more tightly `/api/auth`).
 - Restrict OAuth redirect URLs to known local and production domains.
-- Validate and authorise all backend requests before querying or writing graph data.
 
 ## Contributing
 
-Contributions are welcome.
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Make focused, tested changes.
-4. Run the relevant frontend and backend checks.
-5. Open a pull request describing the problem, approach, and verification steps.
+1. Create a feature branch.
+2. Make focused changes with tests; run `npm run lint` and `npm test` in the affected directory.
+3. Open a pull request. CI runs lint, tests and the client build.
 
 ## Acknowledgements
 
