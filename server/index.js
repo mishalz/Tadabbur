@@ -43,9 +43,15 @@ ensureSchema()
   .then(() => console.log("[DB] Schema ready"))
   .catch((err) => console.error("[DB] Schema setup failed:", err.message));
 
-// Health check (used by Render / uptime monitors). Does not require a session.
-// It also queries the database, so a regular ping keeps a free-tier
-// database from suspending.
+// Lightweight keep-alive for uptime monitors. Does not touch the database or
+// session store, so frequent pings keep the Render service awake without
+// waking a suspended free-tier database.
+app.get("/ping", (_, res) => {
+  res.status(200).send("ok");
+});
+
+// Deep health check: also verifies the database is reachable.
+// Not for frequent polling, as each call wakes an auto-suspended database.
 app.get("/healthz", async (_, res) => {
   try {
     await checkDatabase();
