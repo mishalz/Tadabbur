@@ -2,3 +2,6 @@ server/node_modules/
 client/node_modules/
 
 .env
+.neon
+node_modules/
+.env.local
