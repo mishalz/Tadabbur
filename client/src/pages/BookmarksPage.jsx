@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from "react";
-import Verse from "../components/Verse";
 import { Spinner } from "@/components/ui/spinner";
 import { UserContext } from "../context/UserContext";
-import { Bookmark, MessageCircleWarning } from "lucide-react";
+import { MessageCircleWarning } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 const BookmarksPage = () => {
   const [verses, setVerses] = useState([]);
@@ -29,7 +29,7 @@ const BookmarksPage = () => {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/content/bookmarks?${params.toString()}`,
+        apiUrl(`/api/content/bookmarks?${params.toString()}`),
         {
           method: "GET",
           headers: {

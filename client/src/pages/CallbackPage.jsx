@@ -5,6 +5,7 @@ import axios from "axios";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
 import { getFullName } from "../utils/user";
+import { apiUrl } from "@/lib/api";
 
 /**
  * CallbackPage component handles OAuth2 redirect from Quran Foundation
@@ -38,7 +39,7 @@ function CallbackPage() {
 
         // Exchange authorization code for tokens
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/auth/qf/exchange`,
+          apiUrl(`/api/auth/qf/exchange`),
           {
             code,
             state,

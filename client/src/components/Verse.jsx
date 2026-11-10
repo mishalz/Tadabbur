@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Bookmark, BookMarkedIcon, Link, Plus } from "lucide-react";
+import { Bookmark, Link, Plus } from "lucide-react";
 
 import { UserContext } from "../context/UserContext";
 import { Spinner } from "./ui/spinner";
 import ConnectionGraph from "./ConnectionGraph";
 import AddConnectionModal from "./AddConnectionModal";
+import { apiUrl } from "@/lib/api";
 
 function Verse({ verse }) {
   const { user, setUser } = useContext(UserContext);
@@ -27,7 +28,7 @@ function Verse({ verse }) {
 
   useEffect(() => {
     fetch(
-      `${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}/count`,
+      apiUrl(`/api/content/connections/${verse.verse_key}/count`),
       {
         method: "GET",
         headers: {
@@ -53,14 +54,14 @@ function Verse({ verse }) {
           setNoOfConnections(0);
         }
       })
-      .catch((err) => {
+      .catch(() => {
         setNoOfConnections(0);
       });
   }, []);
 
   useEffect(() => {
     fetch(
-      `${import.meta.env.VITE_API_URL}/api/content/bookmarks/bookmark/${verse.verse_key}`,
+      apiUrl(`/api/content/bookmarks/bookmark/${verse.verse_key}`),
       {
         method: "GET",
         headers: {
@@ -95,7 +96,7 @@ function Verse({ verse }) {
           });
         }
       })
-      .catch((err) => {
+      .catch(() => {
         setBookmarkedDetails({
           isBookmarked: false,
           id: null,
@@ -117,7 +118,7 @@ function Verse({ verse }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/content/connections`,
+        apiUrl(`/api/content/connections`),
         {
           method: "POST",
           headers: {
@@ -167,7 +168,7 @@ function Verse({ verse }) {
       setError(null);
       setIsLoading(true);
       fetch(
-        `${import.meta.env.VITE_API_URL}/api/content/connections/${verse.verse_key}`,
+        apiUrl(`/api/content/connections/${verse.verse_key}`),
         {
           method: "GET",
           headers: {
@@ -215,7 +216,7 @@ function Verse({ verse }) {
     if (bookmarkedDetails.isBookmarked) {
       setIsBookmarkLoading(true);
       fetch(
-        `${import.meta.env.VITE_API_URL}/api/content/bookmarks/${bookmarkedDetails.id}`,
+        apiUrl(`/api/content/bookmarks/${bookmarkedDetails.id}`),
         {
           method: "DELETE",
           headers: {
@@ -255,7 +256,7 @@ function Verse({ verse }) {
         });
     } else {
       setIsBookmarkLoading(true);
-      fetch(`${import.meta.env.VITE_API_URL}/api/content/bookmarks`, {
+      fetch(apiUrl(`/api/content/bookmarks`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

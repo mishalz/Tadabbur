@@ -4,6 +4,7 @@ import Verse from "../components/Verse";
 import { Spinner } from "@/components/ui/spinner";
 import { ResourcesContext } from "../context/ResourcesContext";
 import { MessageCircleWarning } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 const StudySpacePage = () => {
   const [verses, setVerses] = useState([]);
@@ -13,10 +14,16 @@ const StudySpacePage = () => {
   const [nextPageExist, setNextPageExist] = useState(false);
   const { params } = useContext(ResourcesContext);
   const location = useLocation();
-  // Retrieve the state data from the location object
-  const storedSurah = JSON.parse(localStorage.getItem("last-surah")); //to retrieve the last surah that was opened in case the user refreshes the page or comes back to it after leaving
-  if (location.state) {
-    localStorage.setItem("last-surah", JSON.stringify(location.state));
+  // Retrieve the state data from the location object. The last opened surah is
+  // remembered so a refresh (or coming back later) shows the same surah.
+  let storedSurah = null;
+  try {
+    storedSurah = JSON.parse(localStorage.getItem("last-surah"));
+    if (location.state) {
+      localStorage.setItem("last-surah", JSON.stringify(location.state));
+    }
+  } catch {
+    // storage unavailable or corrupted - fall back to the router state only
   }
   const { surahId, arabicName, englishName } =
     location.state || storedSurah || {};
@@ -24,39 +31,47 @@ const StudySpacePage = () => {
   const script = params.script; //to include the arabic text in the response
   const translation_id = params.translationId; //to include the translation of the verse in the response
 
+  // A different surah or translation starts again from page 1 with no verses.
   useEffect(() => {
+    setVerses([]);
+    setPage(1);
+    setError(null);
+  }, [surahId, script, translation_id]);
+
+  useEffect(() => {
+    if (!(surahId >= 1 && surahId <= 114)) return;
+
+    // Abort the request if the inputs change before it finishes, so a slow
+    // response for an old surah/page can never be appended to the new one.
+    const controller = new AbortController();
     setLoading(true);
-    if (surahId >= 1 && surahId <= 114) {
-      fetch(
-        `${import.meta.env.VITE_API_URL}/api/quran/surahs/${surahId}?page=${page}&script=${script}&translation_id=${translation_id}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      )
-        .then((res) => {
-          if (res.status !== 200)
-            setError("Failed to load the verses. Please try again.");
-          return res.json();
-        })
-        .then((json_result) => {
-          const data = json_result;
-          if (data.verses && data.verses.length > 0) {
-            setVerses((verses) => [...verses, ...data.verses]);
-          }
-          if (data.pagination && data.pagination.next_page) {
-            setNextPageExist(true);
-          } else {
-            setNextPageExist(false);
-          }
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [surahId, page]);
+
+    fetch(
+      apiUrl(
+        `/api/quran/surahs/${surahId}?page=${page}&script=${script}&translation_id=${translation_id}`,
+      ),
+      { signal: controller.signal },
+    )
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load the verses.");
+        const data = await res.json();
+        if (data.verses?.length > 0) {
+          setVerses((verses) => [...verses, ...data.verses]);
+        }
+        setNextPageExist(Boolean(data.pagination?.next_page));
+        setError(null);
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setError("Failed to load the verses. Please try again.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [surahId, page, script, translation_id]);
+
   return (
     <div>
       <h1 className="mb-0">Surah {arabicName}</h1>
