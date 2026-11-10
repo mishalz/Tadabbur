@@ -7,7 +7,7 @@ const EXPIRY_SKEW_MS = 30 * 1000;
  * Authentication middleware for /api/content/*.
  *
  * Identity comes ONLY from the server-side session (created by the OAuth2
- * code exchange and stored in Redis), never from client-supplied tokens.
+ * code exchange and stored in Postgres), never from client-supplied tokens.
  * Previously this decoded the Bearer JWT without verifying its signature, so
  * anyone could forge a token with an arbitrary `sub` and act as that user.
  *
