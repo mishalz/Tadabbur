@@ -97,8 +97,13 @@ export async function getJsonData(path, params = {}) {
 
 export const getVerseData = async (verseKey) => {
   if (!VERSE_KEY_PATTERN.test(String(verseKey))) {
-    throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
+    throw new ResourceNotFoundError(
+      `"${verseKey}" is not a valid verse. Use the format surah:verse, for example 2:255.`,
+    );
   }
+
+  const notFound = () =>
+    new ResourceNotFoundError(`Verse ${verseKey} does not exist.`);
 
   const url = `/content/api/v4/verses/by_key/${verseKey}?fields=text_uthmani&translations=85`;
 
@@ -108,13 +113,11 @@ export const getVerseData = async (verseKey) => {
   } catch (error) {
     // The API answers 400/404 for a verse that does not exist.
     if (error.upstreamStatus === 404 || error.upstreamStatus === 400) {
-      throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
+      throw notFound();
     }
     throw error;
   }
 
-  if (!verseData?.verse) {
-    throw new ResourceNotFoundError("Verse not found. Invalid verse key.");
-  }
+  if (!verseData?.verse) throw notFound();
   return { success: true, verse: verseData.verse };
 };

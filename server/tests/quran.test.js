@@ -34,7 +34,10 @@ describe("quran content", () => {
 
     test("maps an upstream 404 to ResourceNotFoundError", async () => {
       qf.setHandler((url) => (url.pathname.includes("/verses/") ? { status: 404, body: {} } : undefined));
-      await assert.rejects(quran.getVerseData("999:999"), { name: "ResourceNotFoundError" });
+      await assert.rejects(quran.getVerseData("999:999"), {
+        name: "ResourceNotFoundError",
+        message: "Verse 999:999 does not exist.",
+      });
     });
 
     test("fetches a fresh token and retries once when the API rejects the token", async () => {

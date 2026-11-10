@@ -58,10 +58,11 @@ const createConnection = async (req, res) => {
       .status(201)
       .send({ success: true, message: "Connection added successfully" });
   } catch (err) {
-    //incase of an error
-    return res.status(500).send({
+    //incase of an error: log the detail, but do not expose internals to the client
+    console.error("[Connections] createConnection failed:", err.message);
+    return res.status(err.statusCode || 500).send({
       success: false,
-      message: err.message,
+      message: "Could not create the connection. Please try again.",
     });
   }
 };

@@ -31,34 +31,42 @@ export const validateInput = (data) => {
 
 //to validate that the verses exist and get data required for creating a connection
 export const validateAndGetVersePair = async (fromVerse, toVerse) => {
-  try {
-    const [fromVerseData, toVerseData] = await Promise.all([
-      getVerseData(fromVerse),
-      getVerseData(toVerse),
-    ]);
+  const keys = [fromVerse, toVerse];
+  const results = await Promise.allSettled(keys.map((key) => getVerseData(key)));
 
-    const toRecord = ({ verse }) => ({
-      key: verse.verse_key,
-      arabicText: verse.text_uthmani,
-      translation: verse.translations?.[0]?.text ?? "",
-    });
-
+  // A verse that does not exist is the user's mistake: say which one.
+  const missing = keys.filter(
+    (_, i) =>
+      results[i].status === "rejected" &&
+      results[i].reason?.name === "ResourceNotFoundError",
+  );
+  if (missing.length > 0) {
+    const names = missing.join(" and ");
     return {
-      success: true,
-      fromVerse: toRecord(fromVerseData),
-      toVerse: toRecord(toVerseData),
+      success: false,
+      status: 404,
+      message:
+        missing.length === 1
+          ? `Verse ${names} does not exist. Please check the surah and verse number.`
+          : `Verses ${names} do not exist. Please check the surah and verse numbers.`,
     };
-  } catch (error) {
-    //if one or both verses do not exist
-    if (error.name === "ResourceNotFoundError") {
-      return {
-        success: false,
-        status: 404,
-        message: "One or both ayah could not be found.",
-      };
-    }
-    throw error;
   }
+
+  // Anything else (e.g. the content API being down) is a real failure.
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure) throw failure.reason;
+
+  const toRecord = ({ value: { verse } }) => ({
+    key: verse.verse_key,
+    arabicText: verse.text_uthmani,
+    translation: verse.translations?.[0]?.text ?? "",
+  });
+
+  return {
+    success: true,
+    fromVerse: toRecord(results[0]),
+    toVerse: toRecord(results[1]),
+  };
 };
 
 //does this user already have a connection between the two verses (either direction)?

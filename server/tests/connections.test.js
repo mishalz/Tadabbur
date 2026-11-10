@@ -75,6 +75,7 @@ describe("connections", { skip: skipReason }, () => {
       );
       const missing = await svc.validateAndGetVersePair("1:1", "999:999");
       assert.deepEqual([missing.success, missing.status], [false, 404]);
+      assert.match(missing.message, /^Verse 999:999 does not exist\./);
 
       qf.setHandler((url) =>
         url.pathname.includes("/verses/by_key/")
@@ -133,6 +134,34 @@ describe("connections", { skip: skipReason }, () => {
         body: { fromVerse: "1:1", toVerse: "999:999" },
       });
       assert.equal(unknown.status, 404);
+      // a friendly message that names the verse, not an internal error string
+      assert.match((await unknown.json()).message, /^Verse 999:999 does not exist\./);
+    });
+
+    test("names every missing verse when both do not exist", async () => {
+      const api = apiClient(app.base, await loginAs(app.base));
+      qf.setHandler((url) => (url.pathname.includes("/verses/by_key/") ? { status: 404, body: {} } : undefined));
+
+      const response = await api("/api/content/connections", {
+        method: "POST",
+        body: { fromVerse: "2:4444", toVerse: "999:999" },
+      });
+      assert.equal(response.status, 404);
+      assert.match((await response.json()).message, /^Verses 2:4444 and 999:999 do not exist\./);
+    });
+
+    test("an upstream outage is reported generically, without leaking internals", async () => {
+      const api = apiClient(app.base, await loginAs(app.base));
+      qf.setHandler((url) => (url.pathname.includes("/verses/by_key/") ? { status: 500, body: {} } : undefined));
+
+      const response = await api("/api/content/connections", {
+        method: "POST",
+        body: { fromVerse: "1:1", toVerse: "1:2" },
+      });
+      assert.equal(response.status, 502);
+      const { message } = await response.json();
+      assert.equal(message, "Could not create the connection. Please try again.");
+      assert.ok(!message.includes("Content API"));
     });
   });
 });
