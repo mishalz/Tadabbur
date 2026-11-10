@@ -34,8 +34,8 @@ const BookmarksPage = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${tokens.accessToken}`,
           },
+          credentials: "include",
         },
       );
 

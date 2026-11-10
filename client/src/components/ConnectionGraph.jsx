@@ -34,8 +34,8 @@ function ConnectionGraph({ connections, setDataToFetch }) {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${tokens.accessToken}`,
           },
+          credentials: "include",
         },
       );
 

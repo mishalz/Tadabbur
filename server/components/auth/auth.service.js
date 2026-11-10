@@ -1,3 +1,4 @@
+import axios from "axios";
 import jwt from "jsonwebtoken";
 
 import { getQfConfig } from "../../qfConfig.js";
@@ -151,4 +152,27 @@ export function verifyScopesGranted(issuedScopes, requestedScopes) {
     all: missing.length === 0,
     missing,
   };
+}
+
+/**
+ * Exchange a refresh token for a new access token (confidential client).
+ * @param {string} refreshToken
+ * @returns {Promise<object>} Raw token response (access_token, expires_in, ...)
+ */
+export async function refreshTokens(refreshToken) {
+  const { authBaseUrl, clientId, clientSecret } = getQfConfig();
+
+  const params = new URLSearchParams();
+  params.append("grant_type", "refresh_token");
+  params.append("refresh_token", refreshToken);
+
+  const response = await axios.post(
+    `${authBaseUrl}/oauth2/token`,
+    params.toString(),
+    {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      auth: { username: clientId, password: clientSecret },
+    },
+  );
+  return response.data;
 }
